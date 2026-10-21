@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Library Manager</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f4ef;--card:#fff;--tx:#1f2430;--mut:#6b7280;--ac:#1d5c4a;--acx:#fff;--bd:#dcd7cb;--red:#b3261e;--ok:#1d5c4a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15181d;--card:#1f242c;--tx:#eceae4;--mut:#9aa3ae;--ac:#5fc2a2;--acx:#10231c;--bd:#323a45;--red:#ff8a80;--ok:#5fc2a2}}
+:root[data-theme="dark"]{--bg:#15181d;--card:#1f242c;--tx:#eceae4;--mut:#9aa3ae;--ac:#5fc2a2;--acx:#10231c;--bd:#323a45;--red:#ff8a80;--ok:#5fc2a2}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 12px}h2{font-size:17px;margin:0 0 10px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tabs button{flex:1;min-width:110px}
+button,input,select{font:inherit}
+button{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;cursor:pointer}
+button.p,.tabs button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+button.d{color:var(--red);border-color:var(--red)}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx)}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:3px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{font-size:12px;color:var(--mut);text-transform:uppercase}
+.low{color:var(--red);font-weight:600}.ok{color:var(--ok);font-weight:600}
+.msg{color:var(--mut);font-size:13px;margin:6px 0 0}
+.sum{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.sum div{flex:1;min-width:120px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px}
+.sum b{display:block;font-size:22px}
+.hide{display:none}
+@media print{body{background:#fff;color:#000}.tabs,.noprint,button,.card form{display:none!important}.card{border:0;padding:0}th,td{border-bottom:1px solid #999;color:#000}.pv{display:block!important}.sum,h1{display:none}#t-report table{font-size:11px}#t-report td,#t-report th,#t-demand td,#t-demand th{white-space:normal;padding:4px}}
+@page{size:A4 landscape;margin:10mm}
+</style></head><body><div class="wrap">
+<h1>Library Manager</h1>
+<div class="noprint" style="margin-bottom:10px"><button id="exp">Backup (download)</button> <button id="imp">Restore backup</button><input type="file" id="impf" accept=".json" class="hide"></div>
+<div id="err" class="card hide"></div>
+<div class="sum" id="sum"></div>
+<div class="tabs noprint" id="tabs">
+<button data-t="books" class="on">Books &amp; Stock</button>
+<button data-t="issue">Issue / Return</button>
+<button data-t="students">Student Report</button>
+<button data-t="stock">Stock In / Out</button>
+<button data-t="report">Final Report</button>
+<button data-t="demand">Demand</button>
+</div>
+
+<section id="t-books">
+<div class="card noprint"><h2>Add book / copy</h2>
+<div class="row">
+<div><label>Type</label><select id="bt"><option value="Book">Book</option><option value="Copy">Copy (notebook)</option><option value="Uniform">Uniform</option></select></div>
+<div><label>Name</label><input id="bn" list="bl" placeholder="e.g. Physics Class 10 / Long Copy 200 pages"></div>
+<div><label>Author</label><input id="ba" placeholder="optional"></div>
+<div><label>Copies</label><input id="bc" type="number" min="1" value="1"></div>
+<div><button class="p" id="addb">Add</button></div></div>
+<datalist id="bl"></datalist>
+<p class="msg">Agar yehi naam pehle se hai to uski copies barh jayengi (stock add).</p></div>
+<div class="card noprint"><h2>Bulk add books (names)</h2>
+<label>Har line mein ek book ka naam</label>
+<textarea id="bulk" rows="6" style="width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit"></textarea>
+<div class="row" style="margin-top:10px"><div><label>Copies per book (0 = sirf naam)</label><input id="bulkc" type="number" min="0" value="0"></div><div><label>Type</label><select id="bulkt"><option value="Book">Book</option><option value="Copy">Copy (notebook)</option><option value="Uniform">Uniform</option></select></div><div><button id="bulkl">Load books list (105)</button></div><div><button id="bulkn">Load notebooks list (11)</button></div><div><button class="p" id="bulka">Add all</button></div></div><p class="msg" id="bulkm"></p></div>
+<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px"><h2 style="margin:0">Books &amp; Copies list</h2><button class="noprint" onclick="window.print()">Print</button></div>
+<div class="tw"><table><thead><tr><th>#</th><th>Name</th><th>Type</th><th>Author</th><th>Total</th><th>Issued</th><th>In hand</th><th class="noprint"></th></tr></thead><tbody id="bb"></tbody></table></div></div>
+</section>
+
+<section id="t-issue" class="hide">
+<div class="card noprint"><h2>Issue book to student</h2>
+<div class="row">
+<div><label>Student name</label><input id="sn" list="sl"></div>
+<div><label>Roll no / Class</label><input id="sr"></div>
+<div><label>Book / Copy</label><select id="sb"></select></div>
+<div><label>Copies</label><input id="sq" type="number" min="1" value="1"></div>
+<div><button class="p" id="iss">Issue</button></div></div>
+<datalist id="sl"></datalist><p class="msg" id="im"></p></div>
+<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px"><h2 style="margin:0">Issue register</h2><button class="noprint" onclick="window.print()">Print</button></div>
+<div class="tw"><table><thead><tr><th>Date</th><th>Student</th><th>Roll</th><th>Book</th><th>Qty</th><th>Status</th><th class="noprint"></th></tr></thead><tbody id="ib"></tbody></table></div></div>
+</section>
+
+<section id="t-students" class="hide">
+<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px"><h2 style="margin:0">Student-wise books</h2><button class="noprint" onclick="window.print()">Print</button></div>
+<div class="noprint" style="margin-bottom:10px"><input id="q" placeholder="Search student name..."></div>
+<div class="tw"><table><thead><tr><th>Student</th><th>Roll</th><th>Currently holding</th><th>Total issued</th><th>Returned</th></tr></thead><tbody id="sb2"></tbody></table></div></div>
+</section>
+<section id="t-stock" class="hide">
+<div class="card noprint"><h2>Stock In / Stock Out</h2>
+<div class="row">
+<div><label>Item</label><select id="mi"></select></div>
+<div><label>Action</label><select id="mk"><option value="in">Stock In</option><option value="out">Stock Out</option></select></div>
+<div><label>Qty</label><input id="mq" type="number" min="1" value="1"></div>
+<div><label>Date</label><input id="md" type="date"></div>
+<div><label>Note (optional)</label><input id="mn" placeholder="PO no / teacher name"></div>
+<div><button class="p" id="mgo">Save</button></div></div>
+<div style="margin-top:10px"><button id="poi">Import PO 22252400077 (Global Campus notebooks)</button> <button id="uni">Import uniform list (39 items)</button></div><p class="msg" id="mm"></p></div>
+<div class="card"><h2>Stock movements</h2><div class="tw"><table><thead><tr><th>Date</th><th>Item</th><th>Action</th><th>Qty</th><th>Note</th><th class="noprint"></th></tr></thead><tbody id="mb"></tbody></table></div></div>
+</section>
+<section id="t-report" class="hide"><div class="card">
+<div style="text-align:center"><b style="font-size:18px">CORNERSTONE SCHOOL</b><br>STOCK REPORT - Global Campus<br><span class="msg" id="rd"></span></div>
+<div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><select id="rt" style="max-width:200px"><option value="">All items</option><option value="Book">Books</option><option value="Copy">Copies / Notebooks</option><option value="Uniform">Uniform</option></select><button onclick="window.print()">Print</button><button class="p" id="rc">Create Final Report</button><button id="rx">Excel</button><button onclick="window.print()">PDF (Save as PDF)</button></div>
+<div id="rbn" class="noprint msg hide" style="margin-bottom:8px"></div>
+<div class="tw"><table><thead><tr><th>Sr</th><th>Item Description</th><th>Stock In</th><th>Issued to Students</th><th>Other Stock Out</th><th>Stock in Hand</th><th>Unit</th><th>Rate</th><th>Value</th></tr></thead><tbody id="rb"></tbody></table></div>
+<div style="display:flex;justify-content:space-between;margin-top:30px"><span>Prepared By ________</span><span>Approved By ________</span></div></div>
+<div class="card noprint"><h2>Saved final reports</h2><div class="tw"><table><thead><tr><th>Date</th><th>Title</th><th>Total in hand</th><th></th></tr></thead><tbody id="rl"></tbody></table></div></div>
+</section>
+<section id="t-demand" class="hide">
+<div class="card noprint"><h2>Demand (items ki demand likhein)</h2>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><select id="dt" style="max-width:200px"><option value="Uniform">Uniform</option><option value="Copy">Copies / Notebooks</option><option value="Book">Books</option><option value="">All items</option></select><input id="dq" placeholder="Search name / code..." style="max-width:240px"></div>
+<div class="tw"><table><thead><tr><th>Code</th><th>Item</th><th>Stock in Hand</th><th>Demand</th></tr></thead><tbody id="de"></tbody></table></div>
+<p class="msg">Demand likh kar bahar click karein, khud save ho jati hai.</p></div>
+<div class="card"><div style="text-align:center"><b style="font-size:18px">Purchase Requisition Form</b></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px;margin:10px 0"><div>PR No: ________</div><div>Date: <span id="dd"></span></div><div>Required By: ________</div><div>School Section: Maintenance</div><div>Teacher/Coordinator: ________</div><div>Purpose: ________</div></div>
+<div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button onclick="window.print()">Print</button><button id="dx">Excel</button><button onclick="window.print()">PDF (Save as PDF)</button></div>
+<div class="tw"><table><thead><tr><th>Sr</th><th>Item Code</th><th>Description</th><th>Unit</th><th>Quantity Demand</th><th>Stock in Hand</th><th>Estimated Cost</th><th>Remarks</th></tr></thead><tbody id="dr"></tbody></table></div>
+<div style="margin-top:24px;line-height:2">Approvals: Department Coordinator ________ Vice Principal ________<br>Store Verification ________ HM Operations &amp; Services (Audit) ________<br>Principal (Final Approval) ________<br>Comments/Remarks: ________</div></div></section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+var books=[],issues=[],moves=[],reports=[],snap=null,db=null;
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function norm(s){return String(s||"").trim().toLowerCase().replace(/\s+/g," ")}
+function today(){return new Date().toISOString().slice(0,10)}
+function iss(b){return issues.filter(function(i){return i.bookId===b.id&&!i.returned}).reduce(function(a,i){return a+(+i.qty||0)},0)}
+function mo(b,k){return moves.filter(function(m){return m.itemId===b.id&&m.kind===k}).reduce(function(a,m){return a+(+m.qty||0)},0)}
+function out(b){return iss(b)+mo(b,"out")}
+function show(t){["books","issue","students","stock","report","demand"].forEach(function(x){$("t-"+x).classList.toggle("hide",x!==t)});
+document.querySelectorAll("#tabs button").forEach(function(b){b.classList.toggle("on",b.dataset.t===t)})}
+$("tabs").onclick=function(e){if(e.target.dataset.t)show(e.target.dataset.t)};
+function render(){
+var tot=0,iss=0;
+books.sort(function(a,b){return (a.title||"").localeCompare(b.title||"")});
+$("bb").innerHTML=books.map(function(b,n){var o=out(b),h=(+b.total||0)-o;tot+=+b.total||0;iss+=o;
+return "<tr><td>"+(n+1)+"</td><td>"+esc(b.title)+"</td><td>"+esc(b.type||"Book")+"</td><td>"+esc(b.author)+"</td><td>"+b.total+"</td><td>"+o+"</td><td class='"+(h<=0?"low":"ok")+"'>"+h+"</td><td class='noprint'><button data-add='"+b.id+"'>+ Copies</button> <button class='d' data-del='"+b.id+"'>Delete</button></td></tr>"}).join("")||"<tr><td colspan='8'>Abhi koi book ya copy nahi.</td></tr>";
+$("sum").innerHTML="<div><b>"+books.length+"</b>Titles</div><div><b>"+tot+"</b>Total copies</div><div><b>"+iss+"</b>Issued</div><div><b>"+(tot-iss)+"</b>Stock in hand</div>";
+$("bl").innerHTML=books.map(function(b){return "<option value=\""+esc(b.title)+"\">"}).join("");
+var cur=$("sb").value;
+$("sb").innerHTML=books.map(function(b){var h=(+b.total||0)-out(b);return "<option value='"+b.id+"'"+(h<=0?" disabled":"")+">"+esc(b.title)+" ["+(b.type||"Book")+"] (in hand: "+h+")</option>"}).join("");
+if(cur)$("sb").value=cur;
+var names={};issues.forEach(function(i){names[i.student]=1});
+$("sl").innerHTML=Object.keys(names).map(function(n){return "<option value=\""+esc(n)+"\">"}).join("");
+var li=issues.slice().sort(function(a,b){return (b.date||"").localeCompare(a.date||"")||(b.ts||0)-(a.ts||0)});
+$("ib").innerHTML=li.map(function(i){return "<tr><td>"+esc(i.date)+"</td><td>"+esc(i.student)+"</td><td>"+esc(i.roll)+"</td><td>"+esc(i.bookTitle)+"</td><td>"+i.qty+"</td><td>"+(i.returned?"Returned "+esc(i.returnDate):"<span class='low'>Issued</span>")+"</td><td class='noprint'>"+(i.returned?"":"<button data-ret='"+i.id+"'>Return</button> ")+"<button class='d' data-di='"+i.id+"'>X</button></td></tr>"}).join("")||"<tr><td colspan='7'>Koi issue record nahi.</td></tr>";
+var q=norm($("q").value),g={};
+issues.forEach(function(i){var k=norm(i.student);if(q&&k.indexOf(q)<0)return;var s=g[k]||(g[k]={n:i.student,r:i.roll,hold:[],t:0,rt:0});
+s.t+=+i.qty||0;if(i.returned)s.rt+=+i.qty||0;else s.hold.push(esc(i.bookTitle)+" x"+i.qty);if(i.roll)s.r=i.roll});
+$("sb2").innerHTML=Object.keys(g).sort().map(function(k){var s=g[k];return "<tr><td>"+esc(s.n)+"</td><td>"+esc(s.r)+"</td><td style='white-space:normal'>"+(s.hold.join(", ")||"-")+"</td><td>"+s.t+"</td><td>"+s.rt+"</td></tr>"}).join("")||"<tr><td colspan='5'>Koi record nahi.</td></tr>";renderStock();renderDemand();
+}
+var KEY="library_manager_data";
+function LocalDB(){var store={},subs={};
+try{store=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){fail(e)}Object.keys(subs).forEach(function(c){subs[c].forEach(function(f){f(snap(c))})})}
+function snap(c){var o=store[c]||{};return{docs:Object.keys(o).map(function(id){return{id:id,data:function(){return o[id]}}})}}
+return{collection:function(c){return{onSnapshot:function(f){(subs[c]=subs[c]||[]).push(f);f(snap(c))},add:async function(d){store[c]=store[c]||{};store[c][Date.now().toString(36)+Math.random().toString(36).slice(2,6)]=d;save()}}},
+doc:function(p){var a=p.split("/");return{update:async function(d){Object.assign(store[a[0]][a[1]],d);save()},delete:async function(){delete store[a[0]][a[1]];save()}}}}}
+$("exp").onclick=function(){var b=new Blob([localStorage.getItem(KEY)||"{}"],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="library-backup-"+today()+".json";a.click()};
+$("imp").onclick=function(){$("impf").click()};
+$("impf").onchange=function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{JSON.parse(r.result);if(confirm("Maujooda data replace ho jayega. Continue?")){localStorage.setItem(KEY,r.result);location.reload()}}catch(e){alert("Ye valid backup file nahi hai.")}};r.readAsText(f)};
+function dstr(){return new Date().toISOString().slice(0,10)}
+function rows(){if(snap)return snap.rows;var t=$("rt").value;return books.filter(function(b){return !t||(b.type||"Book")===t}).map(function(b,n){var s=iss(b),m=mo(b,"out"),h=(+b.total||0)-s-m,r=+b.rate||0;return{n:n+1,name:b.title,type:b.type||"Book",rate:r,inn:+b.total||0,iss:s,mo:m,hand:h,val:h*r}})}
+function renderStock(){
+var cur=$("mi").value;$("mi").innerHTML=books.map(function(b){return "<option value='"+b.id+"'>"+esc(b.title)+" ["+(b.type||"Book")+"]</option>"}).join("");if(cur)$("mi").value=cur;
+if(!$("md").value)$("md").value=dstr();
+var l=moves.slice().sort(function(a,b){return (b.ts||0)-(a.ts||0)});
+$("mb").innerHTML=l.map(function(m){return "<tr><td>"+esc(m.date)+"</td><td>"+esc(m.itemTitle)+"</td><td>"+(m.kind==="in"?"<span class='ok'>Stock In</span>":"<span class='low'>Stock Out</span>")+"</td><td>"+m.qty+"</td><td>"+esc(m.note)+"</td><td class='noprint'><button class='d' data-dm='"+m.id+"'>X</button></td></tr>"}).join("")||"<tr><td colspan='6'>Koi movement nahi.</td></tr>";
+var R=rows(),T={i:0,s:0,m:0,h:0,v:0};
+$("rb").innerHTML=R.map(function(r){T.i+=r.inn;T.s+=r.iss;T.m+=r.mo;T.h+=r.hand;T.v+=r.val;return "<tr><td>"+r.n+"</td><td>"+esc(r.name)+"</td><td>"+r.inn+"</td><td>"+r.iss+"</td><td>"+r.mo+"</td><td class='"+(r.hand<=0?"low":"ok")+"'><b>"+r.hand+"</b></td><td>NO</td><td>"+(r.rate||"-")+"</td><td>"+(r.rate?r.val.toLocaleString():"-")+"</td></tr>"}).join("")+"<tr><th colspan='2'>Grand Total</th><th>"+T.i+"</th><th>"+T.s+"</th><th>"+T.m+"</th><th>"+T.h+"</th><th colspan='2'></th><th>"+T.v.toLocaleString()+"</th></tr>";
+$("rd").textContent=snap?"Final Report: "+snap.title+" ("+snap.date+")":"Live stock - Date: "+dstr();
+var bn=$("rbn");bn.classList.toggle("hide",!snap);bn.innerHTML=snap?"Saved report dekh rahe hain. <button data-live='1'>Back to live stock</button>":"";
+$("rl").innerHTML=reports.slice().sort(function(a,b){return (b.ts||0)-(a.ts||0)}).map(function(r){return "<tr><td>"+esc(r.date)+"</td><td>"+esc(r.title)+"</td><td>"+r.hand+"</td><td><button data-vr='"+r.id+"'>View</button> <button class='d' data-dr='"+r.id+"'>Delete</button></td></tr>"}).join("")||"<tr><td colspan='4'>Abhi koi saved report nahi.</td></tr>"}
+$("rc").onclick=async function(){if(!db)return;snap=null;var R=rows();if(!R.length)return alert("Pehle items add karein.");
+var t=prompt("Report ka naam / period (e.g. October 2026)","Stock Report "+dstr());if(t===null)return;
+var h=R.reduce(function(a,r){return a+r.hand},0);
+try{await db.collection("reports").add({title:t.trim()||"Stock Report",date:dstr(),ts:Date.now(),hand:h,rows:R});alert("Final report save ho gayi. Neeche Saved final reports mein dekhein.")}catch(e){fail(e)}};
+async function saveFile(name,blob){var d=null;try{if(window.claude)d=await claude.use("downloads")}catch(e){}
+if(d){try{await d.save({filename:name,data:blob})}catch(e){fail(e)}return}
+var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click()}
+$("rx").onclick=function(){if(!window.XLSX)return alert("Excel library load nahi hui.");var R=rows(),a=[["CORNERSTONE SCHOOL - STOCK REPORT (Global Campus)"],["Date: "+dstr()],[],["Sr","Item Description","Stock In","Issued to Students","Other Stock Out","Stock in Hand","Unit","Rate","Value"]],T=[0,0,0,0,0];
+R.forEach(function(r){a.push([r.n,r.name,r.inn,r.iss,r.mo,r.hand,"NO",r.rate,r.val]);T[0]+=r.inn;T[1]+=r.iss;T[2]+=r.mo;T[3]+=r.hand;T[4]+=r.val});
+a.push(["","Grand Total",T[0],T[1],T[2],T[3],"","",T[4]]);
+var ws=XLSX.utils.aoa_to_sheet(a),wb=XLSX.utils.book_new();ws["!cols"]=[{wch:5},{wch:45},{wch:10},{wch:18},{wch:15},{wch:13},{wch:6},{wch:8},{wch:12}];XLSX.utils.book_append_sheet(wb,ws,"Stock Report");
+saveFile("stock-report-"+dstr()+".xlsx",new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}))};
+$("rt").onchange=renderStock;
+$("mgo").onclick=async function(){var b=books.filter(function(x){return x.id===$("mi").value})[0],q=parseInt($("mq").value,10),k=$("mk").value;
+if(!b||!(q>0)||!db)return alert("Item aur qty chahiye.");
+var h=(+b.total||0)-out(b);if(k==="out"&&q>h)return alert("Stock kam hai. In hand: "+h);
+try{if(k==="in")await db.doc("books/"+b.id).update({total:(+b.total||0)+q});
+await db.collection("moves").add({itemId:b.id,itemTitle:b.title,kind:k,qty:q,date:$("md").value||dstr(),note:$("mn").value.trim(),ts:Date.now()});
+$("mm").textContent=(k==="in"?"Stock In: ":"Stock Out: ")+b.title+" x"+q;$("mq").value=1;$("mn").value=""}catch(e){fail(e)}};
+var PO=[["Maths 12mm Medium Square (Small Notebooks)",300,152],["Maths 9mm (Small Notebooks)",300,152],["Narrow lined Interleaf (Large Notebook)",300,192],["Urdu (Small Notebook)",400,152],["Sketch Book small",400,240],["Sketch Book Large",200,330],["Register",500,328],["English 4 line Interleaf (Small Notebook)",400,152],["English (Small Notebook)",350,152],["Narrow Line (Large Notebook)",350,192],["Homework Diary",500,172],["Plastic Cover Large",2000,24],["Plastic Cover Small",3000,19]];
+$("poi").onclick=async function(){if(!db||!confirm("PO 22252400077 ki quantity Stock In mein add karein?"))return;var a=0,s=0;
+try{for(var i=0;i<PO.length;i++){var p=PO[i],ex=books.filter(function(b){return norm(b.title)===norm(p[0])&&(b.type||"Book")==="Copy"})[0];
+if(ex&&ex.poRef==="22252400077"){s++;continue}
+if(ex){await db.doc("books/"+ex.id).update({total:(+ex.total||0)+p[1],rate:p[2],poRef:"22252400077"})}
+else{await db.collection("books").add({title:p[0],type:"Copy",author:"",total:p[1],rate:p[2],poRef:"22252400077",created:Date.now()+i})}
+a++}
+$("mm").textContent="PO import: "+a+" items add/update, "+s+" pehle se thi."}catch(e){fail(e)}};
+var UNI=[["5010037", "T.Shirt Grey 02", 30, 8], ["5010038", "T.Shirt Grey 03", 30, 4], ["5010039", "T.Shirt Grey 04", 30, 5], ["5010040", "T.Shirt Grey-5/6", 30, 6], ["5010041", "T.Shirt Grey 7/8", 30, 10], ["5010042", "T.Shirt Grey 9/10", 30, 1], ["5010056", "T.Shirt Grey 13/14", 10, 11], ["5010057", "T.Shirt Grey 15/16", 10, 15], ["", "T.Shirt Grey S\"", 5, 0], ["5010115", "T.Shirt Grey M\"", 5, 2], ["5010116", "T.Shirt Grey L\"", 5, 0], ["", "T.shirt Red Yr.2", 15, 0], ["5010131", "T. Shirt Red Yr.3", 15, 1], ["5010132", "T. Shirt Red Yr 4", 15, 1], ["5010133", "T. Shirt Red 5/6", 15, 4], ["5010134", "T. Shirt Red 7/8", 15, 5], ["5010135", "T. Shirt Red 9/10", 15, 8], ["5010136", "T. Shirt Red 11/12", 15, 8], ["5010150", "T.Shirt Red-13/14", 15, 5], ["5010069", "Tracksuit Bottom Yr.2", 30, 7], ["5010070", "Tracksuit Bottom Yr.3", 30, 7], ["5010071", "Tracksuit Bottom Yr.4", 30, 10], ["5010072", "Tracksuit Bottom 5/6", 30, 6], ["5010073", "Tracksuit Bottom 7/8", 30, 13], ["5010074", "Tracksuit Bottom 9/10", 15, 19], ["5010075", "Tracksuit Bottom 11/12", 15, 19], ["5010076", "Tracksuit Bottom 13/14", 10, 26], ["5010077", "Tracksuit Bottom 15/16", 10, 21], ["", "Tracksuit Bottom S\"", 5, 0], ["5010079", "Tracksuit Bottom M\"", 5, 2], ["5010083", "Polo Shirts Year.3", 15, 19], ["5010095", "Polo Shirts Year.4", 30, 7], ["5010088", "Polo Shirts 5/6", 40, 0], ["5010087", "Polo Shirts 7/8", 40, 0], ["5010089", "Polo Shirts 9/10", 20, 10], ["5010126", "Polo Shirt 15/16", 15, 9], ["5010127", "Polo Shirt S\"", 5, 4], ["5010128", "Polo Shirt Red M\"", 5, 4], ["5010129", "Polo Shirt L\"", 5, 4]];
+function hand(b){return (+b.total||0)-out(b)}
+function pr(){var t=$("dt").value;return books.filter(function(b){return(!t||(b.type||"Book")===t)&&+b.demand>0})}
+function renderDemand(){var t=$("dt").value,q=norm($("dq").value);
+var L=books.filter(function(b){return(!t||(b.type||"Book")===t)&&(!q||norm(b.title+" "+(b.code||"")).indexOf(q)>=0)});
+$("de").innerHTML=L.map(function(b){var h=hand(b);return "<tr><td>"+esc(b.code)+"</td><td>"+esc(b.title)+"</td><td class='"+(h<=0?"low":"ok")+"'>"+h+"</td><td><input type='number' min='0' style='width:90px' data-dem='"+b.id+"' value='"+(+b.demand||0)+"'></td></tr>"}).join("")||"<tr><td colspan='4'>Koi item nahi.</td></tr>";
+$("dr").innerHTML=pr().map(function(b,n){var c=(+b.rate||0)*b.demand;return "<tr><td>"+(n+1)+"</td><td>"+esc(b.code)+"</td><td>"+esc(b.title)+"</td><td>No</td><td><b>"+b.demand+"</b></td><td>"+hand(b)+"</td><td>"+(c?c.toLocaleString():"")+"</td><td></td></tr>"}).join("")||"<tr><td colspan='8'>Upar demand likhein.</td></tr>";
+$("dd").textContent=dstr()}
+$("dt").onchange=renderDemand;$("dq").oninput=renderDemand;
+document.body.addEventListener("change",async function(e){var t=e.target;if(t.dataset&&t.dataset.dem&&db){try{await db.doc("books/"+t.dataset.dem).update({demand:Math.max(0,parseInt(t.value,10)||0)})}catch(er){fail(er)}}});
+$("dx").onclick=function(){if(!window.XLSX)return alert("Excel library load nahi hui.");
+var a=[["Purchase Requisition Form"],["PR No: ________   Date: "+dstr(),"","","","","Required By:"],["School Section: Maintenance"],["Teacher/Coordinator Name:"],["Purpose of Purchase:"],[],["Sr.#","Item Code","Description","Unit","Quantity Demand","Stock in Hand","Estimated Cost","Remarks"]];
+pr().forEach(function(b,n){var c=(+b.rate||0)*b.demand;a.push([n+1,b.code||"",b.title,"No",+b.demand,hand(b),c||"",""])});
+a.push([],["Approvals:"],["Department Coordinator: ________  Vice Principal: ________"],["Store Verification: ________  HM Operations & Services (Audit): ________"],["Principal (Final Approval): ________"],["Comments/Remarks: ________"]);
+var ws=XLSX.utils.aoa_to_sheet(a),wb=XLSX.utils.book_new();ws["!cols"]=[{wch:6},{wch:12},{wch:36},{wch:6},{wch:16},{wch:14},{wch:14},{wch:20}];XLSX.utils.book_append_sheet(wb,ws,"Demand");
+saveFile("purchase-requisition-"+dstr()+".xlsx",new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}))};
+$("uni").onclick=async function(){if(!db||!confirm("Uniform list (stock in hand + demand) import karein?"))return;var a=0,s=0,S="UNI-2026-04-23";
+try{for(var i=0;i<UNI.length;i++){var u=UNI[i],ex=books.filter(function(b){return norm(b.title)===norm(u[1])&&(b.type||"Book")==="Uniform"})[0];
+if(ex&&ex.src===S){s++;continue}
+if(ex){await db.doc("books/"+ex.id).update({total:(+ex.total||0)+u[3],demand:u[2],code:u[0],src:S})}
+else{await db.collection("books").add({title:u[1],type:"Uniform",author:"",code:u[0],total:u[3],demand:u[2],src:S,created:Date.now()+i})}
+a++}
+$("mm").textContent="Uniform import: "+a+" items add/update, "+s+" pehle se thi."}catch(e){fail(e)}};
+function fail(e){var d=$("err");d.classList.remove("hide");d.textContent="Error: "+(e&&e.message||e)}
+async function init(){
+db=LocalDB();
+db.collection("books").onSnapshot(function(s){books=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},fail);
+db.collection("issues").onSnapshot(function(s){issues=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},fail);
+db.collection("moves").onSnapshot(function(s){moves=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},fail);
+db.collection("reports").onSnapshot(function(s){reports=s.docs.map(function(d){return Object.assign({id:d.id},d.data())});render()},fail);
+}
+$("addb").onclick=async function(){
+var t=$("bn").value.trim(),c=parseInt($("bc").value,10),ty=$("bt").value;
+if(!t||!(c>0)||!db)return alert("Book name aur copies likhein.");
+try{var ex=books.filter(function(b){return norm(b.title)===norm(t)&&(b.type||"Book")===ty})[0];
+if(ex){await db.doc("books/"+ex.id).update({total:(+ex.total||0)+c})}
+else{await db.collection("books").add({title:t,type:ty,author:$("ba").value.trim(),total:c,created:Date.now()})}
+$("bn").value="";$("ba").value="";$("bc").value=1}catch(e){fail(e)}};
+var LIST=["Edexcel Accounting", "World Watch Text Book 1", "World Watch Text Book 2", "World Watch Text Book 3", "World Watch Text Book 4", "Global Citizenship Workbook Year 8", "Global Citizenship Workbook Year 9", "Abacus Year 6 Textbook 1", "Abacus Year 6 Textbook 2", "Abacus Year 6 Textbook 3", "Inspire Computing International Y1 WB", "IPrimary English Act Book Year 1", "Pearson International Primary Science WB Y1", "Math Progress International 7 WB", "Inspire Computing International Y2 WB", "IPrimary English Act Book Year 2", "Pearson International Primary Science WB Y2", "Math Progress International 8 WB", "Inspire Computing International Y3 WB", "IPrimary English Act Book Year 3", "Pearson International Primary Science WB Y3", "Math Progress International 9 WB", "Inspire Computing International Y4 WB", "IPrimary English Act Book Year 4", "Pearson International Primary Science WB Y4", "Inspire Computing International Y5 WB", "IPrimary English Act Book Year 5", "Pearson International Primary Science WB Y5", "Inspire Computing International Y6 WB", "IPrimary English Act Book Year 6", "Pearson International Primary Science WB Y6", "Inspire Computing International Y7 WB", "Tarjuma-Tul-Quran (Grade 6)", "Inspire Computing International Y8 WB", "Tarjuma-Tul-Quran (Grade 7)", "Inspire Computing International Y9 WB", "Pearson The World Around Us (Autumn)", "Aaroo 2 Amli Workbook", "Aaroo 2 Darsi Book", "iPrimary Reception 2 Activity Book (Autumn)", "iPrimary Reception 2 Activity Book (Spring)", "iPrimary Reception 2 Activity Book (Summer)", "Pearson The World Around Us (Spring)", "Pearson The World Around Us (Summer)", "Aam Darsi Book", "Aam Amli WorkBook", "Darussalam Grade 1", "Abacus Year 1 Workbook 1", "Abacus Year 1 Workbook 2", "Abacus Year 1 Workbook 3", "Global Citizenship Workbook Year 1", "Urdu Dhanak Laal Book 1", "Darussalam Grade 2", "Abacus Year 2 Workbook 1", "Abacus Year 2 Workbook 2", "Abacus Year 2 Workbook 3", "Global Citizenship Workbook Year 2", "Urdu Dhanak Neela Book 2", "Darussalam Grade 3", "Global Citizenship Workbook Year 3", "Abacus Year 3 Workbook 1", "Abacus Year 3 Workbook 3", "Abacus Year 3 Workbook 2", "Urdu Dhanak Peela Book 3", "Darussalam Grade 4", "Abacus Year 4 Workbook 1", "Abacus Year 4 Workbook 2", "Abacus Year 4 Workbook 3", "Urdu Dhanak Hara Book 4", "Darussalam Grade 5", "Global Citizenship Workbook Year 5", "Abacus Year 5 Textbook 1", "Abacus Year 5 Textbook 2", "Abacus Year 5 Textbook 3", "Pearson Discover History Book 6", "Urdu Dhanak Naranji Book 5", "Pearson Discover Geography Student Book 1", "The Environment of Pakistan", "Darussalam Grade 6", "The Phantom Toll Booth", "Global Citizenship Workbook Year 6", "Exploring Science 11-14 Text Book 1", "Inspire English International 8", "Pearson Discover History Book 7", "Urdu Dhanak Jamni Book 6", "Pearson Discover Geography Student Book 2", "Darussalam Grade 7", "Global Citizenship Workbook Year 7", "Julius Caesar", "Exploring Science 11-14 Text Book 2", "Inspire English International 9", "Pearson Discover History Book 8", "Urdu Dhanak Unabi Book 7", "Edexcel Computer Science", "Edexcel English Language B", "Edxcel Biology", "Ilmi first language Urdu O Level", "Edexcel Economics", "Edexcel Business studies", "Edexcel Chemistry", "Edexcel Physics", "Edexcel 1 GCSE Math A", "Islamic Beliefs and Practice", "FrankWood Business Accounting 1", "Pakistan History (Nigel Smith)"];
+var NB=["Maths 12mm Medium Square (Small Notebooks)", "Maths 9mm (Small Notebooks)", "Narrow lined Interleaf (Large Notebook)", "Urdu (Small Notebook)", "Sketch Book small", "Sketch Book Large", "Register", "English 4 line Interleaf (Small Notebook)", "English (Small Notebook)", "Narrow Line (Large Notebook)", "Homework Diary"];
+$("bulkl").onclick=function(){$("bulkt").value="Book";$("bulk").value=LIST.join("\n")};
+$("bulkn").onclick=function(){$("bulkt").value="Copy";$("bulk").value=NB.join("\n")};
+$("bulka").onclick=async function(){var ty=$("bulkt").value,c=parseInt($("bulkc").value,10)||0,names=$("bulk").value.split("\n").map(function(x){return x.trim()}).filter(Boolean),seen={},add=0,skip=0;
+if(!names.length||!db)return alert("Naam likhein.");
+try{for(var i=0;i<names.length;i++){var k=norm(names[i]);if(seen[k]||books.some(function(b){return norm(b.title)===k&&(b.type||"Book")===ty})){skip++;continue}seen[k]=1;await db.collection("books").add({title:names[i],type:ty,author:"",total:c,created:Date.now()+i});add++}
+$("bulkm").textContent=add+" books add hui, "+skip+" pehle se thi.";$("bulk").value=""}catch(e){fail(e)}};
+$("iss").onclick=async function(){
+var n=$("sn").value.trim(),q=parseInt($("sq").value,10),b=books.filter(function(x){return x.id===$("sb").value})[0];
+if(!n||!b||!(q>0)||!db)return alert("Student name, book aur copies chahiye.");
+var h=(+b.total||0)-out(b);if(q>h)return alert("Stock kam hai. In hand: "+h);
+try{await db.collection("issues").add({student:n,roll:$("sr").value.trim(),bookId:b.id,bookTitle:b.title,qty:q,date:today(),ts:Date.now(),returned:false});
+$("im").textContent="Issued: "+n+" ko "+b.title+" x"+q;$("sq").value=1}catch(e){fail(e)}};
+document.body.addEventListener("click",async function(e){
+var t=e.target,id;if(!db)return;
+try{
+if(id=t.dataset.del){var b=books.filter(function(x){return x.id===id})[0];
+if(out(b)>0)return alert("Is book ki copies abhi students ke paas hain. Pehle return karwayein.");
+if(confirm("Delete \""+b.title+"\"?"))await db.doc("books/"+id).delete()}
+else if(id=t.dataset.add){var n=parseInt(prompt("Kitni copies add karni hain?","1"),10);
+var bk=books.filter(function(x){return x.id===id})[0];if(n>0)await db.doc("books/"+id).update({total:(+bk.total||0)+n})}
+else if(id=t.dataset.ret){await db.doc("issues/"+id).update({returned:true,returnDate:today()})}
+else if(id=t.dataset.vr){snap=reports.filter(function(x){return x.id===id})[0];renderStock();window.scrollTo(0,0)}
+else if(id=t.dataset.dr){if(confirm("Saved report delete karein?")){if(snap&&snap.id===id)snap=null;await db.doc("reports/"+id).delete()}}
+else if(t.dataset.live){snap=null;renderStock()}
+else if(id=t.dataset.dm){if(!confirm("Ye movement delete karein?"))return;var m=moves.filter(function(x){return x.id===id})[0],bk2=books.filter(function(x){return x.id===m.itemId})[0];
+if(m.kind==="in"&&bk2){if((+bk2.total||0)-out(bk2)<m.qty)return alert("Is stock in ko delete karne se stock minus ho jayega.");await db.doc("books/"+bk2.id).update({total:(+bk2.total||0)-m.qty})}
+await db.doc("moves/"+id).delete()}
+else if(id=t.dataset.di){if(confirm("Ye issue record delete karein?"))await db.doc("issues/"+id).delete()}
+}catch(er){fail(er)}});
+$("q").oninput=render;
+render();init();
+})();
+</script></body></html>
