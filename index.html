@@ -31,7 +31,7 @@ th{font-size:12px;color:var(--mut);text-transform:uppercase}
 .sum div{flex:1;min-width:120px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px}
 .sum b{display:block;font-size:22px}
 .hide{display:none}
-@media print{body{background:#fff;color:#000}.tabs,.noprint,button,.card form{display:none!important}.card{border:0;padding:0}th,td{border-bottom:1px solid #999;color:#000}.pv{display:block!important}.sum,h1{display:none}table{font-size:11px;width:100%}td,th{white-space:normal!important;padding:4px}.tw{overflow:visible}.gal{grid-template-columns:repeat(4,1fr)}.gc,tr{break-inside:avoid}.gc input[data-grade]{border:0;text-align:center;background:none}.brand{display:none}.ph{display:block!important;position:fixed;top:-24mm;left:0;right:0;text-align:center}.ph img{height:18mm;background:#fff}}
+@media print{body{background:#fff;color:#000}.tabs,.noprint,button,.card form{display:none!important}.card{border:0;padding:0}th,td{border-bottom:1px solid #999;color:#000}.pv{display:block!important}.sum,h1{display:none}table{font-size:11px;width:100%}td,th{white-space:normal!important;padding:4px}.tw{overflow:visible}.gal{grid-template-columns:repeat(4,1fr)}.gc,tr{break-inside:avoid}.gc input[data-grade],input[data-min]{border:0;text-align:center;background:none}.brand{display:none}.ph{display:block!important;position:fixed;top:-24mm;left:0;right:0;text-align:center}.ph img{height:18mm;background:#fff}}
 .th{width:28px;height:36px;object-fit:cover;border-radius:3px;vertical-align:middle}.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.gc{border:1px solid var(--bd);border-radius:10px;padding:8px;background:var(--card);text-align:center}.gc img{width:100%;height:180px;object-fit:contain;background:#0001;border-radius:6px}.gc .ph{height:180px;display:flex;align-items:center;justify-content:center;color:var(--mut);background:#0001;border-radius:6px}
 .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}.brand img{height:72px;border-radius:8px;background:#fff}
 .ph{display:none}
@@ -47,6 +47,7 @@ th{font-size:12px;color:var(--mut);text-transform:uppercase}
 <button data-t="issue">Issue / Return</button>
 <button data-t="students">Student Report</button>
 <button data-t="stock">Stock In / Out</button>
+<button data-t="hand">Stock in Hand</button>
 <button data-t="report">Final Report</button>
 <button data-t="demand">Demand</button>
 <button data-t="covers">Book Covers</button>
@@ -128,6 +129,12 @@ th{font-size:12px;color:var(--mut);text-transform:uppercase}
 <h2>Book Covers</h2>
 <div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><select id="ct" style="max-width:180px"><option value="">All types</option><option value="Book">Books</option><option value="Copy">Copies</option><option value="Uniform">Uniform</option></select><input id="cg" list="gl" placeholder="Grade filter (e.g. Grade 5)" style="max-width:220px"><input id="cq" placeholder="Search name..." style="max-width:220px"><datalist id="gl"></datalist><button onclick="window.print()">Print</button></div>
 <div class="gal" id="gal"></div></div></section>
+<section id="t-hand" class="hide"><div class="card">
+<h2>Stock in Hand</h2>
+<div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center"><select id="ht" style="max-width:170px"><option value="">All types</option><option value="Book">Books</option><option value="Copy">Copies</option><option value="Uniform">Uniform</option></select><input id="hq" placeholder="Search name / grade..." style="max-width:220px"><label style="display:inline;margin:0"><input id="hl" type="checkbox" style="width:auto"> Low stock only (below</label><input id="hn" type="number" min="1" value="5" style="width:70px"><span>)</span><button onclick="window.print()">Print</button><button class="p" id="hd">Create demand from low stock</button><button id="hx">Excel</button></div>
+<div id="hs" style="margin-bottom:8px"></div>
+<div class="tw"><table><thead><tr><th>Sr</th><th>Item</th><th>Size</th><th>Grade</th><th>Stock In</th><th>Stock in Hand</th><th>Min level</th><th>Status</th><th>Short by</th><th class="noprint">Set physical count</th></tr></thead><tbody id="hb"></tbody></table></div>
+<p class="msg noprint">Gintii (physical count) likh kar bahar click karein, stock khud theek ho jata hai aur movement list mein likha jata hai.</p></div></section>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -141,7 +148,7 @@ function today(){return new Date().toISOString().slice(0,10)}
 function iss(b){return issues.filter(function(i){return i.bookId===b.id&&!i.returned}).reduce(function(a,i){return a+(+i.qty||0)},0)}
 function mo(b,k){return moves.filter(function(m){return m.itemId===b.id&&m.kind===k}).reduce(function(a,m){return a+(+m.qty||0)},0)}
 function out(b){return iss(b)+mo(b,"out")}
-function show(t){["books","issue","students","stock","report","demand","covers"].forEach(function(x){$("t-"+x).classList.toggle("hide",x!==t)});
+function show(t){["books","issue","students","stock","report","demand","covers","hand"].forEach(function(x){$("t-"+x).classList.toggle("hide",x!==t)});
 document.querySelectorAll("#tabs button").forEach(function(b){b.classList.toggle("on",b.dataset.t===t)})}
 $("tabs").onclick=function(e){if(e.target.dataset.t)show(e.target.dataset.t)};
 function render(){
@@ -161,7 +168,7 @@ $("ib").innerHTML=li.map(function(i){return "<tr><td>"+esc(i.date)+"</td><td>"+e
 var q=norm($("q").value),g={};
 issues.forEach(function(i){var k=norm(i.student);if(q&&k.indexOf(q)<0)return;var s=g[k]||(g[k]={n:i.student,r:i.roll,hold:[],t:0,rt:0});
 s.t+=+i.qty||0;if(i.returned)s.rt+=+i.qty||0;else s.hold.push(esc(i.bookTitle)+" x"+i.qty);if(i.roll)s.r=i.roll});
-$("sb2").innerHTML=Object.keys(g).sort().map(function(k){var s=g[k];return "<tr><td>"+esc(s.n)+"</td><td>"+esc(s.r)+"</td><td style='white-space:normal'>"+(s.hold.join(", ")||"-")+"</td><td>"+s.t+"</td><td>"+s.rt+"</td></tr>"}).join("")||"<tr><td colspan='5'>Koi record nahi.</td></tr>";renderStock();renderDemand();renderCovers();
+$("sb2").innerHTML=Object.keys(g).sort().map(function(k){var s=g[k];return "<tr><td>"+esc(s.n)+"</td><td>"+esc(s.r)+"</td><td style='white-space:normal'>"+(s.hold.join(", ")||"-")+"</td><td>"+s.t+"</td><td>"+s.rt+"</td></tr>"}).join("")||"<tr><td colspan='5'>Koi record nahi.</td></tr>";renderStock();renderDemand();renderCovers();renderHand();
 }
 var KEY="library_manager_data";
 function LocalDB(){var store={},subs={};
@@ -259,6 +266,26 @@ try{if(t.dataset.grade!==undefined)await db.doc("books/"+t.dataset.grade).update
 else if(t.dataset.cv&&t.files[0])await db.doc("books/"+t.dataset.cv).update({cover:await shrink(t.files[0])})}catch(er){fail(er)}});
 (function(){var p=document.createElement("div");p.className="ph";p.innerHTML=document.querySelector(".brand img").outerHTML;document.body.insertBefore(p,document.body.firstChild)})();
 $("po").onchange=function(){$("pg").textContent="@page{size:A4 "+this.value+";margin:28mm 10mm 12mm}"};
+function hrows(){var t=$("ht").value,q=norm($("hq").value),lo=$("hl").checked,n=+$("hn").value||5;
+return books.filter(function(b){var h=hand(b);return(!t||(b.type||"Book")===t)&&(!q||norm(b.title+" "+(b.grade||"")+" "+(b.code||"")).indexOf(q)>=0)&&(!lo||(+b.min>0?h<+b.min:h<n))})}
+function stat(b){var h=hand(b),m=+b.min||0;return h<=0?"Out":(m>0&&h<m?"Low":"OK")}
+function renderHand(){var R=hrows(),T=0,c={OK:0,Low:0,Out:0};
+$("hb").innerHTML=R.map(function(b,i){var h=hand(b),m=+b.min||0,s=stat(b);T+=h;c[s]++;return "<tr><td>"+(i+1)+"</td><td>"+esc(b.title)+"</td><td>"+esc(b.size)+"</td><td>"+esc(b.grade)+"</td><td>"+(+b.total||0)+"</td><td class='"+(s==="OK"?"ok":"low")+"'><b>"+h+"</b></td><td><input type='number' min='0' style='width:70px' data-min='"+b.id+"' value='"+m+"'></td><td class='"+(s==="OK"?"ok":"low")+"'>"+s+"</td><td>"+(m>h?m-h:"")+"</td><td class='noprint'><input type='number' min='0' style='width:90px' data-cnt='"+b.id+"' placeholder='"+h+"'></td></tr>"}).join("")+"<tr><th colspan='5'>Total stock in hand</th><th>"+T+"</th><th colspan='3'></th><th class='noprint'></th></tr>";
+$("hs").innerHTML="OK: <b class='ok'>"+c.OK+"</b> &nbsp; Low: <b class='low'>"+c.Low+"</b> &nbsp; Out of stock: <b class='low'>"+c.Out+"</b>"}
+document.body.addEventListener("change",async function(e){var t=e.target;if(db&&t.dataset&&t.dataset.min!==undefined){try{await db.doc("books/"+t.dataset.min).update({min:Math.max(0,parseInt(t.value,10)||0)})}catch(er){fail(er)}}});
+$("hd").onclick=async function(){if(!db)return;var L=books.filter(function(b){return +b.min>0&&hand(b)<+b.min});
+if(!L.length)return alert("Koi item min level se kam nahi. Pehle Min level likhein.");
+if(!confirm(L.length+" items ki demand (kami ke barabar) set karein? Demand tab mein dekh sakte hain."))return;
+try{for(var i=0;i<L.length;i++)await db.doc("books/"+L[i].id).update({demand:+L[i].min-hand(L[i])});alert("Demand set ho gayi. Demand tab kholein.")}catch(e){fail(e)}};
+$("ht").onchange=renderHand;$("hl").onchange=renderHand;$("hn").oninput=renderHand;$("hq").oninput=renderHand;
+document.body.addEventListener("change",async function(e){var t=e.target;if(!db||!t.dataset||t.dataset.cnt===undefined||t.value==="")return;
+var b=books.filter(function(x){return x.id===t.dataset.cnt})[0],nv=parseInt(t.value,10);if(!b||!(nv>=0))return;var h=hand(b),d=nv-h;if(!d){t.value="";return}
+try{if(d>0)await db.doc("books/"+b.id).update({total:(+b.total||0)+d});
+await db.collection("moves").add({itemId:b.id,itemTitle:b.title,kind:d>0?"in":"out",qty:Math.abs(d),date:dstr(),note:"Physical count (was "+h+", now "+nv+")",ts:Date.now()})}catch(er){fail(er)}});
+$("hx").onclick=function(){if(!window.XLSX)return alert("Excel library load nahi hui.");var R=hrows(),T=0,a=[["CORNERSTONE SCHOOL - STOCK IN HAND"],["Date: "+dstr()],[],["Sr","Item","Size","Grade","Stock In","Stock in Hand","Min level","Status","Short by"]];
+R.forEach(function(b,i){var h=hand(b),m=+b.min||0;T+=h;a.push([i+1,b.title,b.size||"",b.grade||"",+b.total||0,h,m,stat(b),m>h?m-h:""])});a.push(["","Total","","","",T,"","",""]);
+var ws=XLSX.utils.aoa_to_sheet(a),wb=XLSX.utils.book_new();ws["!cols"]=[{wch:5},{wch:45},{wch:8},{wch:12},{wch:10},{wch:13},{wch:10},{wch:8},{wch:9}];XLSX.utils.book_append_sheet(wb,ws,"Stock in Hand");
+saveFile("stock-in-hand-"+dstr()+".xlsx",new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}))};
 function fail(e){var d=$("err");d.classList.remove("hide");d.textContent="Error: "+(e&&e.message||e)}
 async function init(){
 db=LocalDB();
