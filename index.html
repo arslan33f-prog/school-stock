@@ -44,7 +44,7 @@ th{font-size:12px;color:var(--mut);text-transform:uppercase}
 <div class="sum" id="sum"></div>
 <div class="tabs noprint" id="tabs">
 <button data-t="books" class="on">Books &amp; Stock</button>
-<button data-t="issue">Issue / Return</button>
+<button data-t="issue">Issue</button>
 <button data-t="students">Student Report</button>
 <button data-t="stock">Stock In / Out</button>
 <button data-t="hand">Stock in Hand</button>
@@ -90,7 +90,7 @@ th{font-size:12px;color:var(--mut);text-transform:uppercase}
 <section id="t-students" class="hide">
 <div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px"><h2 style="margin:0">Student-wise books</h2><button class="noprint" onclick="window.print()">Print</button></div>
 <div class="noprint" style="margin-bottom:10px"><input id="q" placeholder="Search student name..."></div>
-<div class="tw"><table><thead><tr><th>Student</th><th>Roll</th><th>Currently holding</th><th>Total issued</th><th>Returned</th></tr></thead><tbody id="sb2"></tbody></table></div></div>
+<div class="tw"><table><thead><tr><th>Student</th><th>Roll</th><th>Currently holding</th><th>Total issued</th></tr></thead><tbody id="sb2"></tbody></table></div></div>
 </section>
 <section id="t-stock" class="hide">
 <div class="card noprint"><h2>Stock In / Stock Out</h2>
@@ -164,11 +164,11 @@ if(cur)$("sb").value=cur;
 var names={};issues.forEach(function(i){names[i.student]=1});
 $("sl").innerHTML=Object.keys(names).map(function(n){return "<option value=\""+esc(n)+"\">"}).join("");
 var li=issues.slice().sort(function(a,b){return (b.date||"").localeCompare(a.date||"")||(b.ts||0)-(a.ts||0)});
-$("ib").innerHTML=li.map(function(i){return "<tr><td>"+esc(i.date)+"</td><td>"+esc(i.student)+"</td><td>"+esc(i.roll)+"</td><td>"+esc(i.bookTitle)+"</td><td>"+i.qty+"</td><td>"+(i.returned?"Returned "+esc(i.returnDate):"<span class='low'>Issued</span>")+"</td><td class='noprint'>"+(i.returned?"":"<button data-ret='"+i.id+"'>Return</button> ")+"<button class='d' data-di='"+i.id+"'>X</button></td></tr>"}).join("")||"<tr><td colspan='7'>Koi issue record nahi.</td></tr>";
+$("ib").innerHTML=li.map(function(i){return "<tr><td>"+esc(i.date)+"</td><td>"+esc(i.student)+"</td><td>"+esc(i.roll)+"</td><td>"+esc(i.bookTitle)+"</td><td>"+i.qty+"</td><td>"+(i.returned?"Returned "+esc(i.returnDate):"<span class='low'>Issued</span>")+"</td><td class='noprint'>"+"<button class='d' data-di='"+i.id+"'>X</button></td></tr>"}).join("")||"<tr><td colspan='7'>Koi issue record nahi.</td></tr>";
 var q=norm($("q").value),g={};
 issues.forEach(function(i){var k=norm(i.student);if(q&&k.indexOf(q)<0)return;var s=g[k]||(g[k]={n:i.student,r:i.roll,hold:[],t:0,rt:0});
 s.t+=+i.qty||0;if(i.returned)s.rt+=+i.qty||0;else s.hold.push(esc(i.bookTitle)+" x"+i.qty);if(i.roll)s.r=i.roll});
-$("sb2").innerHTML=Object.keys(g).sort().map(function(k){var s=g[k];return "<tr><td>"+esc(s.n)+"</td><td>"+esc(s.r)+"</td><td style='white-space:normal'>"+(s.hold.join(", ")||"-")+"</td><td>"+s.t+"</td><td>"+s.rt+"</td></tr>"}).join("")||"<tr><td colspan='5'>Koi record nahi.</td></tr>";renderStock();renderDemand();renderCovers();renderHand();
+$("sb2").innerHTML=Object.keys(g).sort().map(function(k){var s=g[k];return "<tr><td>"+esc(s.n)+"</td><td>"+esc(s.r)+"</td><td style='white-space:normal'>"+(s.hold.join(", ")||"-")+"</td><td>"+s.t+"</td></tr>"}).join("")||"<tr><td colspan='5'>Koi record nahi.</td></tr>";renderStock();renderDemand();renderCovers();renderHand();
 }
 var KEY="library_manager_data";
 function LocalDB(){var store={},subs={};
@@ -326,7 +326,6 @@ else if(id=t.dataset.sub){var bs=books.filter(function(x){return x.id===id})[0],
 if(n2>0){if(n2>h)return alert("Stock kam hai. In hand: "+h);await db.collection("moves").add({itemId:id,itemTitle:bs.title,kind:"out",qty:n2,date:dstr(),note:"Stock removed",ts:Date.now()})}}
 else if(id=t.dataset.add){var n=parseInt(prompt("Kitni copies add karni hain?","1"),10);
 var bk=books.filter(function(x){return x.id===id})[0];if(n>0){await db.doc("books/"+id).update({total:(+bk.total||0)+n});await db.collection("moves").add({itemId:id,itemTitle:bk.title,kind:"in",qty:n,date:dstr(),note:"Stock add",ts:Date.now()})}}
-else if(id=t.dataset.ret){await db.doc("issues/"+id).update({returned:true,returnDate:today()})}
 else if(id=t.dataset.rc){await db.doc("books/"+id).update({cover:""})}
 else if(id=t.dataset.vd){dsnap=demands.filter(function(x){return x.id===id})[0];renderDemand();window.scrollTo(0,0)}
 else if(id=t.dataset.dd){if(confirm("Saved demand delete karein?")){if(dsnap&&dsnap.id===id)dsnap=null;await db.doc("demands/"+id).delete()}}
