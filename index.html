@@ -312,6 +312,7 @@
     <div class="si-card">
       <div class="si-header">
         <div class="si-field"><label>Department</label><input type="text" id="siDept" value="Global Campus"></div>
+        <div class="si-field"><label>Issued To (Person)</label><input type="text" id="siTo" list="siToList" placeholder="Name of person / teacher"></div><datalist id="siToList"></datalist>
         <div class="si-field"><label>Store</label><select id="siStore"></select></div>
         <div class="si-field"><label>SI Date</label><input type="date" id="siDate"></div>
         <div class="si-field"><label>SI No</label><input type="text" id="siNo" readonly></div>
@@ -418,9 +419,10 @@
 
   <div class="section" id="section-reports">
     <div class="toolbar">
-      <select id="rType"><option value="items">Items</option><option value="status">Stock Status</option><option value="ledger">Item Ledger</option><option value="consumption">Consumption</option><option value="issues">Store Issue</option><option value="grn">GRN</option><option value="sales">Store Sale</option></select>
+      <select id="rType"><option value="items">Items</option><option value="status">Stock Status</option><option value="ledger">Item Ledger</option><option value="consumption">Consumption</option><option value="issues">Store Issue</option><option value="issuedto">Issued To - Details (who got what)</option><option value="issuedsum">Issued To - Summary</option><option value="grn">GRN</option><option value="sales">Store Sale</option></select>
       <select id="rCat"></select>
       <input type="text" id="rItem" list="itemCodeList" placeholder="Item code (Item Ledger)">
+      <input type="text" id="rWho" list="siToList" placeholder="Issued To / Dept (optional)">
       <span class="note" style="margin:0">From</span><input type="date" id="rFrom">
       <span class="note" style="margin:0">To</span><input type="date" id="rTo">
       <button class="btn" id="rRun" type="button">Run</button>
@@ -518,7 +520,7 @@ const ERPCATS = ['01 - Stationery Items','02 - General Items','03 - Sports Items
 const ITEMS = [{"code":"0101002","name":"Chart Paper (White)","unit":"NO","category":"Stationery Items - Stationery Items","store":"Fixed Assets Purchase Store","qty":10.0,"rate":45.0,"value":450.0,"id":1},{"code":"01010028","name":"Sticko","unit":"NO","category":"Stationery Items - Stationery Items","store":"Fixed Assets Purchase Store","qty":7.0,"rate":580.0,"value":4060.0,"id":2}];
 
 let state = { items: null, tx: [], issues: [], siCounter: 1 };
-let modalMode = null, modalItemId = null, siRows = [];
+let editSi = null; let modalMode = null, modalItemId = null, siRows = [];
 
 function fmtNum(n, decimals){
   decimals = decimals === undefined ? 2 : decimals;
@@ -622,6 +624,7 @@ function renderLedger(){
         <div class="rowbtns">
           <button class="in" data-act="in" data-id="${i.id}">Stock In</button>
           <button class="out" data-act="out" data-id="${i.id}">Stock Out</button>
+          <button style="background:var(--ink)" data-act="edit" data-id="${i.id}">Edit</button>
         </div>
       </td>
     </tr>`;
@@ -778,7 +781,7 @@ function setSiStatus(s){
   el.className = 'si-status ' + s;
   el.textContent = s.charAt(0).toUpperCase() + s.slice(1);
 }
-function resetSiForm(genNewNumber){
+function resetSiForm(genNewNumber){ editSi = null;
   siRows = [newBlankSiRow()];
   document.getElementById('siDate').value = todayISO();
   if(genNewNumber) document.getElementById('siNo').value = generateSiNo();
@@ -808,14 +811,34 @@ function renderSiRows(){
   updateSiGrandTotal();
 }
 
+function editSiByNo(no){
+  const d = state.issues.find(x => x.siNo === no); if(!d) return;
+  editSi = d;
+  document.getElementById('siNo').value = d.siNo;
+  document.getElementById('siDate').value = d.date;
+  document.getElementById('siDept').value = d.dept || '';
+  document.getElementById('siTo').value = d.to || '';
+  document.getElementById('siStore').value = d.store;
+  siRows = d.rows.map(r => { const it = state.items.find(i => i.code.toLowerCase() === String(r.code||'').toLowerCase()); return Object.assign({}, r, { avail: it ? it.qty + r.issQty : 0 }); });
+  siRows.push(newBlankSiRow());
+  setSiStatus('pending'); renderSiRows();
+  document.getElementById('siListPanel').style.display = 'none';
+  document.querySelector('.tab[data-section="issue"]').click();
+  showToast('Editing ' + no + '. Change what you need and press Save.');
+}
 function saveSi(){
   const validRows = siRows.filter(r => (r.code || r.name) && r.issQty > 0);
   if(validRows.length === 0){ showToast('Add valid items.'); return; }
   for(const r of validRows){
     const item = state.items.find(i => i.code.toLowerCase() === r.code.toLowerCase());
-    if(item && r.issQty > item.qty){ showToast(`Only ${fmtNum(item.qty)} available for ${item.name}`); return; }
+    const back = (editSi && item) ? editSi.rows.filter(o => String(o.code||'').toLowerCase() === item.code.toLowerCase()).reduce((a,o)=>a+o.issQty,0) : 0;
+    if(item && r.issQty > item.qty + back){ showToast(`Only ${fmtNum(item.qty + back)} available for ${item.name}`); return; }
   }
   const siNo = document.getElementById('siNo').value;
+  if(editSi){
+    editSi.rows.forEach(o => { const it = state.items.find(i => i.code.toLowerCase() === String(o.code||'').toLowerCase()); if(it){ it.qty += o.issQty; state.tx.push({ itemId: it.id, itemName: it.name, type: 'in', qty: o.issQty, reason: `Edit of ${editSi.siNo} (old issue reversed)`, at: Date.now() }); } });
+    state.issues = state.issues.filter(x => x !== editSi);
+  }
   let grand = 0;
   for(const r of validRows){
     const item = state.items.find(i => i.code.toLowerCase() === r.code.toLowerCase());
@@ -823,8 +846,8 @@ function saveSi(){
     grand += r.issQty * r.issRate;
     if(item) state.tx.push({ itemId: item.id, itemName: item.name, type: 'out', qty: r.issQty, reason: `Store Issue ${siNo}`, at: Date.now() });
   }
-  state.issues.push({ siNo, date: document.getElementById('siDate').value, dept: document.getElementById('siDept').value, store: document.getElementById('siStore').value, rows: validRows, total: grand, status: 'Saved', savedAt: Date.now() });
-  state.siCounter++;
+  state.issues.push({ siNo, date: document.getElementById('siDate').value, dept: document.getElementById('siDept').value, to: document.getElementById('siTo').value.trim(), store: document.getElementById('siStore').value, rows: validRows, total: grand, status: 'Saved', savedAt: Date.now() });
+  if(editSi){ editSi = null; } else { state.siCounter++; }
   saveState();
   setSiStatus('saved');
   renderAll();
@@ -835,7 +858,7 @@ function saveSi(){
 function printSi(){
   const validRows = siRows.filter(r => (r.code || r.name) && r.issQty > 0);
   if(validRows.length === 0){ showToast('Add items before printing.'); return; }
-  printVoucherWindow({ siNo: document.getElementById('siNo').value, date: document.getElementById('siDate').value, dept: document.getElementById('siDept').value, store: document.getElementById('siStore').value, status: document.getElementById('siStatus').textContent, rows: validRows });
+  printVoucherWindow({ siNo: document.getElementById('siNo').value, date: document.getElementById('siDate').value, dept: document.getElementById('siDept').value, to: document.getElementById('siTo').value.trim(), store: document.getElementById('siStore').value, status: document.getElementById('siStatus').textContent, rows: validRows });
 }
 
 function printVoucherWindow(v){
@@ -843,7 +866,7 @@ function printVoucherWindow(v){
   if(!w){ showToast('Allow pop-ups to print.'); return; }
   w.document.write(`<!DOCTYPE html><html><head><title>Voucher ${v.siNo}</title><style>body{font-family:Georgia,serif;padding:20px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th,td{border:1px solid #999;padding:6px;font-size:12px;}th{background:#233C2C;color:#fff;}</style></head><body>
     <h2>Cornerstone School - Store Issue Voucher</h2>
-    <p><strong>SI No:</strong> ${v.siNo} | <strong>Date:</strong> ${v.date} | <strong>Store:</strong> ${v.store}</p>
+    <p><strong>SI No:</strong> ${v.siNo} | <strong>Date:</strong> ${v.date} | <strong>Store:</strong> ${v.store} | <strong>Department:</strong> ${v.dept||''} | <strong>Issued To:</strong> ${v.to||'-'}</p>
     <table><thead><tr><th>#</th><th>Code</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
     <tbody>${v.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.code}</td><td>${r.name}</td><td>${r.unit}</td><td>${r.issQty}</td><td>${r.issRate}</td><td>${r.issQty*r.issRate}</td></tr>`).join('')}</tbody></table>
   </body></html>`);
@@ -854,8 +877,8 @@ function printVoucherWindow(v){
 function renderSiList(){
   document.getElementById('siListBody').innerHTML = state.issues.length === 0 ? '<div style="padding:10px;">No saved issues.</div>' : [...state.issues].reverse().map(d=>`
     <div class="hist-item">
-      <div><strong>${d.siNo}</strong> (${d.store})<div class="hist-meta">${d.rows.length} items &middot; ${d.date}</div></div>
-      <div class="hist-right"><div>${fmtMoney(d.total)}</div><button type="button" class="btn ghost" onclick="printVoucherWindow(${JSON.stringify(d).replace(/"/g, '&quot;')})" style="padding:2px 8px;font-size:11px;">Print</button></div>
+      <div><strong>${d.siNo}</strong> (${d.store})<div class="hist-meta">${d.rows.length} items &middot; ${d.date} &middot; To: ${escapeHtml(d.to||'-')} (${escapeHtml(d.dept||'')})</div></div>
+      <div class="hist-right"><div>${fmtMoney(d.total)}</div><button type="button" class="btn ghost" onclick="editSiByNo('${d.siNo}')" style="padding:2px 8px;font-size:11px;margin-right:6px;">Edit</button><button type="button" class="btn ghost" onclick="printVoucherWindow(${JSON.stringify(d).replace(/"/g, '&quot;')})" style="padding:2px 8px;font-size:11px;">Print</button></div>
     </div>`).join('');
 }
 
@@ -1121,6 +1144,15 @@ $('siBody').addEventListener('change',e=>{
   const it=state.items.find(i=>i.name.toLowerCase()===v);
   if(it){row.code=it.code;row.name=it.name;row.unit=it.unit;row.avail=it.qty;row.issRate=it.rate;row.total=(row.issQty||0)*it.rate;if(parseInt(tr.dataset.idx,10)===siRows.length-1) siRows.push(newBlankSiRow());renderSiRows();}
 });
+$('ledgerBody').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-act="edit"]'); if(!b) return; e.stopImmediatePropagation();
+  const it=state.items.find(i=>i.id===parseInt(b.dataset.id,10)); if(!it) return;
+  openForm('Edit Item',[{k:'code',l:'Item Code *',r:1},{k:'name',l:'Item Name *',r:1},{k:'unit',l:'Unit *',r:1},{k:'category',l:'Category'},{k:'store',l:'Store'},{k:'rate',l:'Average Rate',t:'number'}],it,v=>{
+    if(state.items.some(x=>x!==it&&x.code.toLowerCase()===v.code.toLowerCase())) return 'Item code already exists.';
+    Object.assign(it,{code:v.code,name:v.name,unit:v.unit,category:v.category||'Uncategorized',store:v.store||it.store,rate:parseFloat(v.rate)||0});
+    saveState(); populateFilters(); renderAll();
+  });
+},true);
 render();
 })();
 </script>
@@ -1132,7 +1164,7 @@ try{const x=localStorage.getItem(K); if(x) S=Object.assign(S,JSON.parse(x));}cat
 const sv=()=>{try{localStorage.setItem(K,JSON.stringify(S));}catch(e){showToast('Save failed');}};
 const T={PO:{n:'Purchase Orders',s:'Purchase Order',p:'Supplier'},GRN:{n:'Goods Receipts',s:'Goods Receipt (GRN)',p:'Supplier'},TO:{n:'Transfer Out',s:'Transfer Out',p:'Receiving Store'},TI:{n:'Transfer In',s:'Transfer In',p:'Issuing Store'},ADJ:{n:'Store Adj.',s:'Store Adjustment',p:'Reason'},SL:{n:'Store Sales',s:'Store Sale',p:'Sold To'}};
 const DIR={GRN:1,TI:1,ADJ:1,TO:-1,SL:-1};
-let cur='PO', dType='PO', dr=[], linkPO=null, lastRep=null;
+let editDoc=null, cur='PO', dType='PO', dr=[], linkPO=null, lastRep=null;
 const item=c=>state.items.find(i=>i.code.toLowerCase()===String(c||'').trim().toLowerCase());
 const blank=()=>({code:'',name:'',unit:'',qty:0,rate:0});
 const dTot=d=>d.rows.reduce((a,r)=>a+r.qty*r.rate,0);
@@ -1153,13 +1185,13 @@ function apply(d,sign){
 
 /* ---------- document editor ---------- */
 function openDoc(t,pre){
-  dType=t; dr=pre?pre.rows.map(r=>({...r})):[blank()]; linkPO=pre&&pre.po||null;
-  $('dTitle').textContent='New '+T[t].s; $('dDate').value=todayISO(); $('dNo').value='(auto)';
-  $('dParty').value=pre?pre.party:''; $('dRem').value=''; $('dPartyL').textContent=T[t].p; $('dErr').style.display='none';
+  dType=t; dr=pre?pre.rows.map(r=>({...r})):[blank()]; linkPO=pre&&pre.po||null; editDoc=pre&&pre.edit||null;
+  $('dTitle').textContent=(editDoc?'Edit ':'New ')+T[t].s; $('dDate').value=editDoc?editDoc.date:todayISO(); $('dNo').value=editDoc?editDoc.no:'(auto)';
+  $('dParty').value=pre?pre.party:''; $('dRem').value=editDoc?editDoc.rem||'':''; $('dPartyL').textContent=T[t].p; $('dErr').style.display='none';
   $('dPartyList').innerHTML=[...new Set(['Canal Garden Campus','Global Campus',...S.docs.map(d=>d.party).filter(Boolean)])].map(x=>`<option value="${esc(x)}">`).join('');
   drawRows(); $('dOverlay').classList.add('open');
 }
-const closeDoc=()=>$('dOverlay').classList.remove('open');
+const closeDoc=()=>{$('dOverlay').classList.remove('open');editDoc=null;};
 const drawTot=()=>{$('dTotal').textContent=fmtMoney(dr.reduce((a,r)=>a+r.qty*r.rate,0));};
 function drawRows(){
   $('dRows').innerHTML=dr.map((r,i)=>`<tr data-i="${i}"><td><input class="d-code" list="itemCodeList" value="${esc(r.code)}"></td><td><input class="d-name" list="itemNameList" value="${esc(r.name)}" placeholder="Auto or type"></td><td><input class="d-unit" value="${esc(r.unit)}"></td><td><input class="d-av" readonly value="${(item(r.code)||{}).qty!==undefined?fmtNum(item(r.code).qty):''}"></td><td><input class="d-qty" type="number" step="0.01" value="${r.qty||''}"></td><td><input class="d-rate" type="number" step="0.01" value="${r.rate||''}"></td><td><input class="d-tot" readonly value="${fmtNum(r.qty*r.rate)}"></td><td>${dr.length>1?`<button type="button" class="si-remove-btn" data-i="${i}">&times;</button>`:''}</td></tr>`).join('');
@@ -1189,9 +1221,22 @@ $('dSave').onclick=()=>{
     if(r.qty<0&&t!=='ADJ') return err('Quantity must be positive.');
     if(t!=='PO'){const it=item(r.code); if(!it) return err('Item code "'+r.code+'" is not in the stock ledger. Add the item first.'); use[it.id]=(use[it.id]||0)+r.qty;}
   }
-  if(t==='TO'||t==='SL'||t==='ADJ') for(const id in use){
+  if(editDoc&&editDoc.posted){
+    const net={};
+    editDoc.rows.forEach(r=>{const it=item(r.code); if(it) net[it.id]=(net[it.id]||0)-DIR[t]*r.qty;});
+    rows.forEach(r=>{const it=item(r.code); if(it) net[it.id]=(net[it.id]||0)+DIR[t]*r.qty;});
+    for(const id in net){const it=state.items.find(i=>String(i.id)===id); if(it.qty+net[id]<0) return err('Stock of '+it.name+' would go below zero.');}
+  }
+  if(!editDoc&&(t==='TO'||t==='SL'||t==='ADJ')) for(const id in use){
     const it=state.items.find(i=>String(i.id)===id), out=t==='ADJ'?-use[id]:use[id];
     if(out>it.qty) return err('Not enough stock for '+it.name+' (available '+fmtNum(it.qty)+').');
+  }
+  if(editDoc){
+    const ed=editDoc;
+    if(ed.posted) apply(ed,-1);
+    Object.assign(ed,{date:$('dDate').value||todayISO(),party:$('dParty').value.trim(),rem:$('dRem').value.trim(),rows:rows.map(r=>({...r}))});
+    if(ed.posted) apply(ed,1);
+    closeDoc(); sv(); renderDocs(); renderAll(); showToast(ed.no+' updated.'); return;
   }
   const n=(S.n[t]||0)+1; S.n[t]=n; const d=new Date();
   const doc={id:Date.now()+'-'+n,type:t,no:t+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+String(n).padStart(4,'0'),date:$('dDate').value||todayISO(),party:$('dParty').value.trim(),rem:$('dRem').value.trim(),rows:rows.map(r=>({...r})),status:(t==='PO'||t==='TO'||t==='TI')?'Pending':'Posted',at:Date.now()};
@@ -1210,7 +1255,7 @@ function renderDocs(){
   const L=S.docs.filter(d=>d.type===cur&&(!st||d.status===st)&&(!q||(d.no+' '+(d.party||'')+' '+d.rows.map(r=>r.name+' '+r.code).join(' ')).toLowerCase().includes(q))).sort((a,b)=>b.at-a.at);
   $('dBody').innerHTML=L.length?L.map(d=>{
     const pend=d.status==='Pending', act=cur==='PO'&&pend?'<button class="in" data-d="grn" data-id="'+d.id+'">Receive</button>':cur==='TI'&&pend?'<button class="in" data-d="recv" data-id="'+d.id+'">Receive</button>':cur==='TO'&&pend?'<button class="in" data-d="done" data-id="'+d.id+'">Complete</button>':'';
-    return `<tr><td><span class="code">${d.no}</span></td><td>${d.date}</td><td>${esc(d.party||'')}</td><td>${d.rows.length}</td><td>${fmtMoney(dTot(d))}</td><td><span class="hist-badge ${pend?'mid':'in'}">${d.status}</span></td><td><div class="rowbtns">${act}<button style="background:var(--ink)" data-d="print" data-id="${d.id}">Print</button><button class="out" data-d="del" data-id="${d.id}">Delete</button></div></td></tr>`;
+    return `<tr><td><span class="code">${d.no}</span></td><td>${d.date}</td><td>${esc(d.party||'')}</td><td>${d.rows.length}</td><td>${fmtMoney(dTot(d))}</td><td><span class="hist-badge ${pend?'mid':'in'}">${d.status}</span></td><td><div class="rowbtns">${act}<button style="background:var(--gold)" data-d="edit" data-id="${d.id}">Edit</button><button style="background:var(--ink)" data-d="print" data-id="${d.id}">Print</button><button class="out" data-d="del" data-id="${d.id}">Delete</button></div></td></tr>`;
   }).join(''):empty(7,'No records. Click "+ New".');
 }
 function printDoc(d){
@@ -1268,6 +1313,17 @@ function runReport(){
   }else if(ty==='issues'){
     title='Store Issue'; h=['SI No','Date','Department','Store','Items','Total'];
     rows=state.issues.filter(d=>inR(d.date)).map(d=>[d.siNo,d.date,d.dept,d.store,d.rows.length,fmtMoney(d.total)]);
+  }else if(ty==='issuedto'||ty==='issuedsum'){
+    const w=$('rWho').value.trim().toLowerCase();
+    const L=state.issues.filter(d=>inR(d.date)&&(!w||((d.to||'')+' '+(d.dept||'')).toLowerCase().includes(w)));
+    if(ty==='issuedto'){
+      title='Issued To - Details'; h=['Date','SI No','Issued To','Department','Code','Item','Qty','Rate','Value']; rows=[];
+      L.forEach(d=>d.rows.forEach(r=>rows.push([d.date,d.siNo,d.to||'(not specified)',d.dept||'',r.code,r.name,fmtNum(r.issQty),fmtNum(r.issRate),fmtMoney(r.issQty*r.issRate)])));
+    }else{
+      title='Issued To - Summary'; h=['Issued To','Department','Issues','Total Qty','Total Value']; const g={};
+      L.forEach(d=>{const k=(d.to||'(not specified)')+'|'+(d.dept||''),a=g[k]||(g[k]={to:d.to||'(not specified)',dept:d.dept||'',n:0,q:0,v:0});a.n++;d.rows.forEach(r=>{a.q+=r.issQty;a.v+=r.issQty*r.issRate;});});
+      rows=Object.values(g).sort((a,b)=>a.to.localeCompare(b.to)).map(a=>[a.to,a.dept,a.n,fmtNum(a.q),fmtMoney(a.v)]);
+    }
   }else{
     const t=ty==='grn'?'GRN':'SL'; title=ty==='grn'?'GRN':'Store Sale'; h=['No','Date',T[t].p,'Items','Total'];
     rows=S.docs.filter(d=>d.type===t&&inR(d.date)).map(d=>[d.no,d.date,d.party||'',d.rows.length,fmtMoney(dTot(d))]);
@@ -1287,6 +1343,7 @@ document.addEventListener('click',e=>{
   }
   const d=S.docs.find(x=>x.id===id), a=b.dataset.d;
   if(a==='print') printDoc(d);
+  else if(a==='edit') openDoc(d.type,{rows:d.rows,party:d.party,edit:d});
   else if(a==='del') delDoc(d);
   else if(a==='grn') openDoc('GRN',{rows:d.rows,party:d.party,po:d.id});
   else if(a==='recv'){apply(d,1);d.posted=true;d.status='Completed';sv();renderDocs();renderAll();showToast('Stock received.');}
@@ -1306,6 +1363,9 @@ $('rCsv').onclick=()=>{
   const q=x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"';
   dl(lastRep.title.replace(/\W+/g,'_')+'.csv',[lastRep.h.map(q).join(',')].concat(lastRep.rows.map(r=>r.map(q).join(','))).join('\n'),'text/csv');
 };
+const fillTo=()=>{$('siToList').innerHTML=[...new Set(state.issues.flatMap(d=>[d.to,d.dept]).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join('');};
+$('siTo').addEventListener('focus',fillTo); $('rWho').addEventListener('focus',fillTo); fillTo();
+['siRefresh','siCancel'].forEach(i=>$(i).addEventListener('click',()=>{$('siTo').value='';}));
 repCats(); renderDocs(); renderCons();
 })();
 </script>
