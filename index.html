@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cornerstone Stock & Library Ledger</title>
+<title>Cornerstone School Manager</title>
 <style>
   :root{
     --paper:#F6F1E4;
@@ -234,6 +234,18 @@
     tbody tr:hover{background:none;}
     .masthead{border-bottom:2px solid #000;}
   }
+
+  .hist-badge.mid{background:var(--gold);}
+  .modal{max-height:92vh;overflow:auto;}
+  .modal h2{margin-bottom:10px;}
+  .modal select{width:100%;padding:9px 10px;border:1px solid var(--rule);background:var(--white);font-size:0.9rem;border-radius:2px;}
+  .toolbar input[type=text]{flex:1 1 200px;}
+  .note{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:0.85rem;color:var(--ink-soft);margin:0 0 14px;}
+  h3.sec{font-family:Georgia,serif;margin:26px 0 10px;}
+  @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .pill{padding:8px 14px;background:var(--paper-dim);border:1px solid var(--rule);cursor:pointer;font-size:0.82rem;color:var(--ink-soft);border-radius:14px;}
+  .pill.active{background:var(--green);color:#fff;border-color:var(--green);}
+  #dTypes{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;}
 </style>
 </head>
 <body>
@@ -241,8 +253,8 @@
 
   <div class="masthead">
     <div>
-      <h1>Cornerstone Stock Ledger</h1>
-      <div class="sub">Global Campus &middot; General &amp; Stationery Store + Fixed Assets Purchase Store</div>
+      <h1>Cornerstone School Manager</h1>
+      <div class="sub">Global Campus &middot; Students &middot; Library &middot; Book Notes &middot; Stock</div>
     </div>
     <div class="date" id="todayDate"></div>
   </div>
@@ -258,6 +270,13 @@
     <div class="tab active" data-section="ledger">Stock Ledger</div>
     <div class="tab" data-section="issue">Store Issue</div>
     <div class="tab" data-section="history">Transaction History</div>
+    <div class="tab" data-section="students">Students</div>
+    <div class="tab" data-section="library">Library</div>
+    <div class="tab" data-section="notes">Book Notes</div>
+    <div class="tab" data-section="docs">Store Docs</div>
+    <div class="tab" data-section="reports">Reports</div>
+    <div class="tab" data-section="cons">Cons. Setup</div>
+    <div class="tab" data-section="backup">Backup</div>
   </div>
 
   <div class="section active" id="section-ledger">
@@ -328,14 +347,97 @@
       <h3 style="font-family:Georgia,serif;">Saved Store Issues</h3>
       <div class="ledger-wrap" id="siListBody"></div>
     </div>
-    <datalist id="itemCodeList"></datalist>
+    <datalist id="itemCodeList"></datalist><datalist id="itemNameList"></datalist>
   </div>
 
   <div class="section" id="section-history">
     <div id="historyList"></div>
   </div>
 
-  <div class="footer-note">Balances shown reflect opening stock report plus transactions recorded. Data is saved automatically.</div>
+  
+  <div class="section" id="section-students">
+    <div class="stats"><div class="stat"><div class="num" id="stT">0</div><div class="lbl">Students</div></div><div class="stat"><div class="num" id="stM">0</div><div class="lbl">Boys</div></div><div class="stat"><div class="num" id="stF">0</div><div class="lbl">Girls</div></div><div class="stat warn"><div class="num" id="stU">0</div><div class="lbl">Fee pending</div></div></div>
+    <div class="toolbar">
+      <input type="text" id="stSearch" placeholder="Search name, reg no, father, phone&hellip;">
+      <select id="stClass"></select>
+      <button class="btn" id="stAdd" type="button">+ Add Student</button>
+      <button class="btn ghost" id="stCsv" type="button">Export CSV</button>
+      <button class="btn ghost" onclick="window.print()" type="button">Print</button>
+    </div>
+    <div class="ledger-wrap"><div class="table-scroll"><table>
+      <thead><tr><th>Reg No</th><th>Name</th><th>Father</th><th>Class</th><th>Gender</th><th>DOB</th><th>Phone</th><th>Fee</th><th>Books out</th><th>Actions</th></tr></thead>
+      <tbody id="stBody"></tbody></table></div></div>
+  </div>
+
+  <div class="section" id="section-library">
+    <div class="stats"><div class="stat"><div class="num" id="lbT">0</div><div class="lbl">Book titles</div></div><div class="stat"><div class="num" id="lbC">0</div><div class="lbl">Total copies</div></div><div class="stat"><div class="num" id="lbI">0</div><div class="lbl">Currently issued</div></div><div class="stat warn"><div class="num" id="lbO">0</div><div class="lbl">Overdue</div></div></div>
+    <div class="toolbar">
+      <input type="text" id="bkSearch" placeholder="Search title, author, accession no&hellip;">
+      <button class="btn" id="bkAdd" type="button">+ Add Book</button>
+      <button class="btn in" id="bkIssue" type="button">Issue Book</button>
+      <button class="btn ghost" onclick="window.print()" type="button">Print</button>
+    </div>
+    <div class="ledger-wrap"><div class="table-scroll"><table>
+      <thead><tr><th>Acc No</th><th>Title</th><th>Author</th><th>Category</th><th>Shelf</th><th>Copies</th><th>Available</th><th>Actions</th></tr></thead>
+      <tbody id="bkBody"></tbody></table></div></div>
+    <h3 class="sec">Issue &amp; Return Record</h3>
+    <div class="ledger-wrap"><div class="table-scroll"><table>
+      <thead><tr><th>Book</th><th>Student</th><th>Issued</th><th>Due</th><th>Status</th><th>Return</th></tr></thead>
+      <tbody id="lnBody"></tbody></table></div></div>
+  </div>
+
+  <div class="section" id="section-notes">
+    <div class="toolbar">
+      <input type="text" id="ntSearch" placeholder="Search notes or book title&hellip;">
+      <button class="btn" id="ntAdd" type="button">+ Add Note</button>
+    </div>
+    <div class="ledger-wrap" id="ntList"></div>
+  </div>
+
+  <div class="section" id="section-backup">
+    <p class="note">All data (students, books, notes, stock) is stored in this browser only. Download a backup regularly, and restore it on another computer or after clearing browser data.</p>
+    <div class="toolbar">
+      <button class="btn" id="bxExport" type="button">Download Backup</button>
+      <label class="btn ghost" style="cursor:pointer">Restore Backup<input type="file" id="bxImport" accept=".json" hidden></label>
+    </div>
+  </div>
+
+  
+  <div class="section" id="section-docs">
+    <div id="dTypes"></div>
+    <div class="toolbar">
+      <select id="dStatus"></select>
+      <input type="text" id="dSearch" placeholder="Search no, party or item&hellip;">
+      <button class="btn" id="dNew" type="button">+ New</button>
+      <button class="btn ghost" id="dSale" type="button">Sale Rate</button>
+    </div>
+    <div class="ledger-wrap"><div class="table-scroll"><table>
+      <thead><tr><th>No</th><th>Date</th><th id="dPartyH">Party</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="dBody"></tbody></table></div></div>
+  </div>
+
+  <div class="section" id="section-reports">
+    <div class="toolbar">
+      <select id="rType"><option value="items">Items</option><option value="status">Stock Status</option><option value="ledger">Item Ledger</option><option value="consumption">Consumption</option><option value="issues">Store Issue</option><option value="grn">GRN</option><option value="sales">Store Sale</option></select>
+      <select id="rCat"></select>
+      <input type="text" id="rItem" list="itemCodeList" placeholder="Item code (Item Ledger)">
+      <span class="note" style="margin:0">From</span><input type="date" id="rFrom">
+      <span class="note" style="margin:0">To</span><input type="date" id="rTo">
+      <button class="btn" id="rRun" type="button">Run</button>
+      <button class="btn ghost" id="rPrint" type="button">Print</button>
+      <button class="btn ghost" id="rCsv" type="button">CSV</button>
+    </div>
+    <div id="rOut"></div>
+  </div>
+
+  <div class="section" id="section-cons">
+    <div class="toolbar"><button class="btn" id="cAdd" type="button">+ Add Consumption Setup</button></div>
+    <div class="ledger-wrap"><div class="table-scroll"><table>
+      <thead><tr><th>Cost Code</th><th>Item Category</th><th>WH Code</th><th>Branch Code</th><th>Nominal Account</th><th>Sub Account</th><th>Acc. Cost Center</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="cBody"></tbody></table></div></div>
+  </div>
+
+  <div class="footer-note">Balances shown reflect opening stock report plus transactions recorded. Data is saved automatically in this browser. Use the Backup tab to keep a copy.</div>
 </div>
 
 <!-- Modal -->
@@ -383,6 +485,9 @@
     <input type="number" id="newQty" min="0" step="0.01" placeholder="20">
     <label>Average rate</label>
     <input type="number" id="newRate" min="0" step="0.01" placeholder="45.00">
+    <div id="uniWrap" style="display:none"><label>Uniform size</label><input type="text" id="newSize" placeholder="e.g. 26, 28, S, M, L" list="sizeList"><datalist id="sizeList"><option value="XS"><option value="S"><option value="M"><option value="L"><option value="XL"><option value="24"><option value="26"><option value="28"><option value="30"><option value="32"><option value="34"><option value="36"></datalist></div>
+    <div id="nbWrap" style="display:none"><label>Notebook type</label><input type="text" id="newNbType" placeholder="e.g. Ruled, Plain, Drawing, Graph" list="nbTypeList"><datalist id="nbTypeList"><option value="Ruled"><option value="Plain"><option value="Drawing"><option value="Graph"><option value="Urdu Ruled"></datalist><label>Pages</label><input type="number" id="newNbPages" min="1" placeholder="e.g. 100, 200"></div>
+    <div id="bookWrap" style="display:none"><label>Book name</label><input type="text" id="newBookName" placeholder="e.g. English Grammar Class 5"><label>Book cover</label><input type="file" id="newCover" accept="image/*"><img id="newCoverPrev" alt="" style="display:none;max-height:90px;margin-top:6px"></div>
     <div class="modal-err" id="addErr">Fill in all required fields.</div>
     <div class="modal-actions">
       <button class="btn ghost" id="cancelAddModal">Cancel</button>
@@ -391,9 +496,25 @@
   </div>
 </div>
 
+<div class="overlay" id="fOverlay"><div class="modal"><button class="close-x" id="fClose" type="button">&times;</button><h2 id="fTitle"></h2><div id="fBody"></div><div class="modal-err" id="fErr"></div><div class="modal-actions"><button class="btn ghost" id="fCancel" type="button">Cancel</button><button class="btn in" id="fSave" type="button">Save</button></div></div></div>
+<div class="overlay" id="dOverlay"><div class="modal" style="max-width:900px"><button class="close-x" id="dClose" type="button">&times;</button><h2 id="dTitle"></h2>
+  <div class="si-header">
+    <div class="si-field"><label>Date</label><input type="date" id="dDate"></div>
+    <div class="si-field"><label>No</label><input type="text" id="dNo" readonly></div>
+    <div class="si-field"><label id="dPartyL">Party</label><input type="text" id="dParty" list="dPartyList"></div>
+    <div class="si-field"><label>Remarks</label><input type="text" id="dRem"></div>
+    <datalist id="dPartyList"></datalist>
+  </div>
+  <div class="si-table-wrap"><table class="si-table" style="min-width:780px"><thead><tr><th>Code</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th></th></tr></thead><tbody id="dRows"></tbody></table></div>
+  <button class="btn ghost si-addrow" id="dAddRow" type="button">+ Add Row</button>
+  <div class="si-grand">Total: <strong id="dTotal">Rs. 0</strong></div>
+  <div class="modal-err" id="dErr"></div>
+  <div class="modal-actions"><button class="btn ghost" id="dCancel" type="button">Cancel</button><button class="btn in" id="dSave" type="button">Save</button></div>
+</div></div>
 <div class="toast" id="toast"></div>
 
 <script>
+const ERPCATS = ['01 - Stationery Items','02 - General Items','03 - Sports Items','04 - Crockery Items','05 - Uniform','06 - Food Items','07 - Cleaning Items','Notebooks','22 - Furniture & Fixture','23 - Computers, Networking, Printer','24 - Electric Equipments','25 - Other Assets','26 - Laboratory Equipments','27 - Library Books','28 - Security','29 - Kitchen Items','30 - Infirmary Items','31 - Horticulture Items','32 - Software & Systems','33 - Course Books (1 Years)'];
 const ITEMS = [{"code":"0101002","name":"Chart Paper (White)","unit":"NO","category":"Stationery Items - Stationery Items","store":"Fixed Assets Purchase Store","qty":10.0,"rate":45.0,"value":450.0,"id":1},{"code":"01010028","name":"Sticko","unit":"NO","category":"Stationery Items - Stationery Items","store":"Fixed Assets Purchase Store","qty":7.0,"rate":580.0,"value":4060.0,"id":2}];
 
 let state = { items: null, tx: [], issues: [], siCounter: 1 };
@@ -445,7 +566,7 @@ function populateFilters(){
   document.getElementById('storeFilter').innerHTML = '<option value="">All stores</option>' + stores.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   document.getElementById('catFilter').innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(shortCat(c))}</option>`).join('');
 
-  document.getElementById('catList').innerHTML = cats.map(c=>`<option value="${escapeHtml(c)}">`).join('');
+  document.getElementById('catList').innerHTML = [...new Set([...cats,...ERPCATS])].map(c=>`<option value="${escapeHtml(c)}">`).join('');
   document.getElementById('storeList').innerHTML = stores.map(s=>`<option value="${escapeHtml(s)}">`).join('');
 
   const siStoreSel = document.getElementById('siStore');
@@ -453,6 +574,7 @@ function populateFilters(){
   siStoreSel.innerHTML = stores.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   if(stores.includes(prevVal)) siStoreSel.value = prevVal;
 
+  document.getElementById('itemNameList').innerHTML = state.items.map(i=>`<option value="${escapeHtml(i.name)}">${escapeHtml(i.code)}</option>`).join('');
   document.getElementById('itemCodeList').innerHTML = state.items.map(i=>`<option value="${escapeHtml(i.code)}">${escapeHtml(i.name)}</option>`).join('');
 }
 
@@ -490,7 +612,7 @@ function renderLedger(){
     const qtyClass = i.qty <= 5 ? 'qty-low' : '';
     return `<tr>
       <td data-label="Code"><span class="code">${escapeHtml(i.code)}</span></td>
-      <td data-label="Item">${escapeHtml(i.name)}</td>
+      <td data-label="Item">${i.cover?`<img src="${i.cover}" alt="" style="width:34px;height:44px;object-fit:cover;vertical-align:middle;margin-right:8px;border:1px solid var(--rule)">`:''}${escapeHtml(i.name)}</td>
       <td data-label="Category"><span class="cat-tag">${escapeHtml(shortCat(i.category))}</span></td>
       <td data-label="Unit">${escapeHtml(i.unit)}</td>
       <td data-label="Balance" class="${qtyClass}">${fmtNum(i.qty)}</td>
@@ -623,8 +745,16 @@ function confirmAddItem(){
   }
 
   const newId = state.items.reduce((max,i)=>Math.max(max,i.id),0) + 1;
-  state.items.push({ id:newId, code, name, unit, category, store, qty, rate, value: qty*rate });
-  state.tx.push({ itemId: newId, itemName: name, type:'in', qty:qty, reason: 'New item added', at: Date.now() });
+  const isU = document.getElementById('uniWrap').style.display === 'block', isB = document.getElementById('bookWrap').style.display === 'block';
+  const size = document.getElementById('newSize').value.trim(), bookName = document.getElementById('newBookName').value.trim();
+  if(isU && !size){ err.textContent = 'Enter the uniform size.'; err.style.display = 'block'; return; }
+  if(isB && !bookName){ err.textContent = 'Enter the book name.'; err.style.display = 'block'; return; }
+  const isN = document.getElementById('nbWrap').style.display === 'block';
+  const nbType = document.getElementById('newNbType').value.trim(), nbPages = document.getElementById('newNbPages').value.trim();
+  const nbInfo = [nbPages ? nbPages + ' pages' : '', nbType].filter(Boolean).join(', ');
+  const finalName = isU ? `${name} (Size ${size})` : (isN && nbInfo) ? `${name} (${nbInfo})` : name;
+  state.items.push({ id:newId, code, name: finalName, unit, category, store, qty, rate, value: qty*rate, size: isU ? size : '', nbType: isN ? nbType : '', nbPages: isN ? nbPages : '', bookName: isB ? bookName : '', cover: isB ? (window._newCover || '') : '' });
+  state.tx.push({ itemId: newId, itemName: finalName, type:'in', qty:qty, reason: 'New item added', at: Date.now() });
 
   saveState();
   populateFilters();
@@ -662,8 +792,8 @@ function renderSiRows(){
   document.getElementById('siBody').innerHTML = siRows.map((r, idx)=>`
     <tr data-idx="${idx}">
       <td><input type="text" class="si-code" list="itemCodeList" value="${escapeHtml(r.code)}" placeholder="Code"></td>
-      <td><input type="text" class="si-desc" value="${escapeHtml(r.name)}" readonly></td>
-      <td><input type="text" class="si-unit" value="${escapeHtml(r.unit)}" readonly></td>
+      <td><input type="text" class="si-desc" list="itemNameList" value="${escapeHtml(r.name)}" placeholder="Auto or type description"></td>
+      <td><input type="text" class="si-unit" value="${escapeHtml(r.unit)}" placeholder="Unit"></td>
       <td><input type="text" class="si-avail" value="${fmtNum(r.avail)}" readonly></td>
       <td><input type="number" class="si-issqty" min="0" step="0.01" value="${r.issQty || ''}"></td>
       <td><input type="number" class="si-issrate" min="0" step="0.0001" value="${r.issRate || ''}"></td>
@@ -679,19 +809,19 @@ function renderSiRows(){
 }
 
 function saveSi(){
-  const validRows = siRows.filter(r => r.code && r.issQty > 0);
+  const validRows = siRows.filter(r => (r.code || r.name) && r.issQty > 0);
   if(validRows.length === 0){ showToast('Add valid items.'); return; }
   for(const r of validRows){
     const item = state.items.find(i => i.code.toLowerCase() === r.code.toLowerCase());
-    if(!item || r.issQty > item.qty){ showToast(`Invalid quantity for ${r.code}`); return; }
+    if(item && r.issQty > item.qty){ showToast(`Only ${fmtNum(item.qty)} available for ${item.name}`); return; }
   }
   const siNo = document.getElementById('siNo').value;
   let grand = 0;
   for(const r of validRows){
     const item = state.items.find(i => i.code.toLowerCase() === r.code.toLowerCase());
-    item.qty -= r.issQty;
+    if(item) item.qty -= r.issQty;
     grand += r.issQty * r.issRate;
-    state.tx.push({ itemId: item.id, itemName: item.name, type: 'out', qty: r.issQty, reason: `Store Issue ${siNo}`, at: Date.now() });
+    if(item) state.tx.push({ itemId: item.id, itemName: item.name, type: 'out', qty: r.issQty, reason: `Store Issue ${siNo}`, at: Date.now() });
   }
   state.issues.push({ siNo, date: document.getElementById('siDate').value, dept: document.getElementById('siDept').value, store: document.getElementById('siStore').value, rows: validRows, total: grand, status: 'Saved', savedAt: Date.now() });
   state.siCounter++;
@@ -703,7 +833,7 @@ function saveSi(){
 }
 
 function printSi(){
-  const validRows = siRows.filter(r => r.code && r.issQty > 0);
+  const validRows = siRows.filter(r => (r.code || r.name) && r.issQty > 0);
   if(validRows.length === 0){ showToast('Add items before printing.'); return; }
   printVoucherWindow({ siNo: document.getElementById('siNo').value, date: document.getElementById('siDate').value, dept: document.getElementById('siDept').value, store: document.getElementById('siStore').value, status: document.getElementById('siStatus').textContent, rows: validRows });
 }
@@ -802,6 +932,382 @@ function init(){
 }
 
 init();
+</script>
+<script>
+(function(){
+const $=id=>document.getElementById(id), esc=escapeHtml, K='cornerstone_school_v1';
+let db={students:[],books:[],loans:[],notes:[]}, fF=[], fCb=null;
+try{const x=localStorage.getItem(K); if(x) db=Object.assign(db,JSON.parse(x));}catch(e){}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(db));}catch(e){showToast('Save failed');}};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const CLASSES=['Play Group','Nursery','Prep',...Array.from({length:10},(_,i)=>'Class '+(i+1))];
+const stById=id=>db.students.find(s=>s.id===id), bkById=id=>db.books.find(b=>b.id===id);
+const active=id=>db.loans.filter(l=>l.book===id&&!l.ret);
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+const empty=(n,t)=>`<tr class="empty-row"><td colspan="${n}">${t}</td></tr>`;
+const badge=f=>`<span class="hist-badge ${f==='Paid'?'in':f==='Unpaid'?'out':'mid'}">${f}</span>`;
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();}
+
+/* generic form modal */
+function openForm(title,fields,vals,cb){
+  fF=fields; fCb=cb; $('fTitle').textContent=title; $('fErr').style.display='none';
+  $('fBody').innerHTML=fields.map(f=>`<label>${f.l}</label>`+(f.t==='cover'?`<input type="file" id="f_${f.k}" accept="image/*"><img id="f_${f.k}_p" alt="" style="display:none;max-height:90px;margin-top:6px">`:f.t==='select'?`<select id="f_${f.k}">${f.o.map(o=>`<option value="${esc(o.v??o)}">${esc(o.n??o)}</option>`).join('')}</select>`:f.t==='textarea'?`<textarea id="f_${f.k}" rows="4"></textarea>`:`<input id="f_${f.k}" type="${f.t||'text'}">`)).join('');
+  fields.forEach(f=>{
+    if(f.t==='cover'){window._cov=vals[f.k]||'';const im=$('f_'+f.k+'_p');if(window._cov){im.src=window._cov;im.style.display='block';}return;}
+    $('f_'+f.k).value=vals[f.k]??f.d??'';
+  });
+  $('fOverlay').classList.add('open');
+}
+window.openForm=openForm;
+const closeForm=()=>$('fOverlay').classList.remove('open');
+function submitForm(){
+  const v={};
+  for(const f of fF){
+    v[f.k]=f.t==='cover'?(window._cov||''):$('f_'+f.k).value.trim();
+    if(f.r&&!v[f.k]){$('fErr').textContent=f.l.replace(' *','')+' is required.';$('fErr').style.display='block';return;}
+  }
+  const e=fCb(v);
+  if(e){$('fErr').textContent=e;$('fErr').style.display='block';return;}
+  closeForm(); save(); render();
+}
+
+/* Students */
+function stForm(s){
+  openForm(s?'Edit Student':'Add Student',[
+    {k:'reg',l:'Reg / Roll No *',r:1},{k:'name',l:'Student Name *',r:1},{k:'father',l:"Father's Name"},
+    {k:'cls',l:'Class',t:'select',o:CLASSES},{k:'sec',l:'Section'},{k:'gender',l:'Gender',t:'select',o:['Male','Female']},
+    {k:'dob',l:'Date of Birth',t:'date'},{k:'phone',l:'Parent Phone'},{k:'addr',l:'Address'},
+    {k:'fee',l:'Fee Status',t:'select',o:['Paid','Partial','Unpaid']},{k:'rem',l:'Remarks',t:'textarea'}
+  ],s||{fee:'Paid'},v=>{
+    if(db.students.some(x=>x!==s&&x.reg.toLowerCase()===v.reg.toLowerCase())) return 'This Reg No already exists.';
+    if(s) Object.assign(s,v); else db.students.push({id:uid(),...v});
+  });
+}
+/* Books */
+function bkForm(b){
+  openForm(b?'Edit Book':'Add Book',[
+    {k:'acc',l:'Accession No *',r:1},{k:'title',l:'Book Title *',r:1},{k:'author',l:'Author'},
+    {k:'cat',l:'Category / Subject'},{k:'shelf',l:'Shelf / Location'},{k:'copies',l:'Total Copies *',t:'number',r:1},{k:'cover',l:'Book Cover',t:'cover'}
+  ],b||{copies:1},v=>{
+    v.copies=parseInt(v.copies,10);
+    if(!(v.copies>=1)) return 'Copies must be at least 1.';
+    if(b&&v.copies<active(b.id).length) return 'Copies cannot be less than the books currently issued.';
+    if(db.books.some(x=>x!==b&&x.acc.toLowerCase()===v.acc.toLowerCase())) return 'This Accession No already exists.';
+    if(b) Object.assign(b,v); else db.books.push({id:uid(),...v});
+  });
+}
+function issueForm(bookId){
+  const bs=db.books.filter(b=>b.copies-active(b.id).length>0);
+  if(!db.students.length) return showToast('Add students first.');
+  if(!bs.length||(bookId&&!bs.some(b=>b.id===bookId))) return showToast('No copy available to issue.');
+  openForm('Issue Book',[
+    {k:'book',l:'Book',t:'select',o:bs.map(b=>({v:b.id,n:b.acc+' - '+b.title}))},
+    {k:'student',l:'Student',t:'select',o:db.students.map(s=>({v:s.id,n:s.reg+' - '+s.name+' ('+s.cls+')'}))},
+    {k:'date',l:'Issue Date',t:'date',d:todayISO()},{k:'days',l:'Days allowed',t:'number',d:14}
+  ],{book:bookId},v=>{
+    const d=v.date||todayISO();
+    db.loans.push({id:uid(),book:v.book,student:v.student,date:d,due:addDays(d,parseInt(v.days,10)||14)});
+    showToast('Book issued.');
+  });
+}
+/* Notes */
+function noteForm(n){
+  if(!db.books.length) return showToast('Add a book first.');
+  openForm(n?'Edit Note':'Add Book Note',[
+    {k:'book',l:'Book',t:'select',o:db.books.map(b=>({v:b.id,n:b.title}))},
+    {k:'page',l:'Page / Chapter'},{k:'text',l:'Note *',t:'textarea',r:1}
+  ],n||{},v=>{ if(n) Object.assign(n,v); else db.notes.push({id:uid(),at:Date.now(),...v}); });
+}
+
+function render(){
+  const L=db.students, q=$('stSearch').value.trim().toLowerCase(), c=$('stClass').value, today=todayISO();
+  $('stT').textContent=L.length; $('stM').textContent=L.filter(s=>s.gender==='Male').length;
+  $('stF').textContent=L.filter(s=>s.gender==='Female').length; $('stU').textContent=L.filter(s=>s.fee&&s.fee!=='Paid').length;
+  const rows=L.filter(s=>(!c||s.cls===c)&&(!q||[s.reg,s.name,s.father,s.phone].join(' ').toLowerCase().includes(q)))
+    .sort((a,b)=>CLASSES.indexOf(a.cls)-CLASSES.indexOf(b.cls)||a.name.localeCompare(b.name));
+  $('stBody').innerHTML=rows.length?rows.map(s=>`<tr><td><span class="code">${esc(s.reg)}</span></td><td title="${esc((s.addr||'')+' '+(s.rem||''))}">${esc(s.name)}</td><td>${esc(s.father||'')}</td><td>${esc(s.cls)}${s.sec?' - '+esc(s.sec):''}</td><td>${esc(s.gender||'')}</td><td>${esc(s.dob||'')}</td><td>${esc(s.phone||'')}</td><td>${badge(s.fee||'Paid')}</td><td>${db.loans.filter(l=>l.student===s.id&&!l.ret).length}</td><td><div class="rowbtns"><button class="in" data-a="st-edit" data-id="${s.id}">Edit</button><button class="out" data-a="st-del" data-id="${s.id}">Delete</button></div></td></tr>`).join(''):empty(10,'No students found. Click "+ Add Student".');
+
+  const bq=$('bkSearch').value.trim().toLowerCase();
+  const bs=db.books.filter(b=>!bq||[b.acc,b.title,b.author,b.cat].join(' ').toLowerCase().includes(bq)).sort((a,b)=>a.title.localeCompare(b.title));
+  const out=db.loans.filter(l=>!l.ret);
+  $('lbT').textContent=db.books.length; $('lbC').textContent=db.books.reduce((a,b)=>a+b.copies,0);
+  $('lbI').textContent=out.length; $('lbO').textContent=out.filter(l=>l.due<today).length;
+  $('bkBody').innerHTML=bs.length?bs.map(b=>{const av=b.copies-active(b.id).length;return `<tr><td><span class="code">${esc(b.acc)}</span></td><td>${b.cover?`<img src="${b.cover}" alt="" style="width:34px;height:44px;object-fit:cover;vertical-align:middle;margin-right:8px;border:1px solid var(--rule)">`:''}${esc(b.title)}</td><td>${esc(b.author||'')}</td><td>${esc(b.cat||'')}</td><td>${esc(b.shelf||'')}</td><td>${b.copies}</td><td class="${av?'':'qty-low'}">${av}</td><td><div class="rowbtns"><button class="in" data-a="bk-issue" data-id="${b.id}">Issue</button><button style="background:var(--ink)" data-a="bk-edit" data-id="${b.id}">Edit</button><button class="out" data-a="bk-del" data-id="${b.id}">Delete</button></div></td></tr>`;}).join(''):empty(8,'No books found. Click "+ Add Book".');
+
+  const ls=[...db.loans].sort((a,b)=>(!!a.ret-!!b.ret)||b.date.localeCompare(a.date));
+  $('lnBody').innerHTML=ls.length?ls.map(l=>{
+    const b=bkById(l.book), s=stById(l.student), late=!l.ret&&l.due<today, n=Math.round((new Date(today)-new Date(l.due))/864e5);
+    return `<tr style="${l.ret?'opacity:.6':''}"><td>${esc(b?b.title:'(deleted)')}</td><td>${esc(s?s.name+' ('+s.cls+')':'(deleted)')}</td><td>${l.date}</td><td>${l.due}</td><td class="${late?'qty-low':''}">${l.ret?'Returned '+l.ret:late?'Overdue '+n+' day(s)':'Issued'}</td><td>${l.ret?'':`<div class="rowbtns"><button class="in" data-a="ln-ret" data-id="${l.id}">Return</button></div>`}</td></tr>`;
+  }).join(''):empty(6,'No books issued yet.');
+
+  const nq=$('ntSearch').value.trim().toLowerCase();
+  const ns=[...db.notes].reverse().filter(n=>{const b=bkById(n.book);return !nq||((b?b.title:'')+' '+n.text+' '+(n.page||'')).toLowerCase().includes(nq);});
+  $('ntList').innerHTML=ns.length?ns.map(n=>{const b=bkById(n.book);return `<div class="hist-item"><div><div style="font-weight:600">${esc(b?b.title:'(deleted book)')}${n.page?' <span class="hist-meta">&middot; '+esc(n.page)+'</span>':''}</div><div style="margin-top:6px;white-space:pre-wrap">${esc(n.text)}</div><div class="hist-meta">${new Date(n.at).toLocaleDateString()}</div></div><div class="rowbtns noprint"><button class="in" data-a="nt-edit" data-id="${n.id}">Edit</button><button class="out" data-a="nt-del" data-id="${n.id}">Delete</button></div></div>`;}).join(''):'<div class="hist-item" style="justify-content:center;font-style:italic;color:var(--ink-soft)">No notes yet. Click "+ Add Note".</div>';
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]'); if(!b) return;
+  const id=b.dataset.id, a=b.dataset.a;
+  if(a==='st-edit') stForm(stById(id));
+  else if(a==='st-del'){
+    const s=stById(id);
+    if(db.loans.some(l=>l.student===id&&!l.ret)) return showToast('Student still has books issued.');
+    if(confirm('Delete '+s.name+'?')){db.students=db.students.filter(x=>x.id!==id);db.loans=db.loans.filter(l=>l.student!==id);save();render();}
+  }
+  else if(a==='bk-edit') bkForm(bkById(id));
+  else if(a==='bk-issue') issueForm(id);
+  else if(a==='bk-del'){
+    const k=bkById(id);
+    if(active(id).length) return showToast('This book is currently issued.');
+    if(confirm('Delete "'+k.title+'" and its notes?')){db.books=db.books.filter(x=>x.id!==id);db.loans=db.loans.filter(l=>l.book!==id);db.notes=db.notes.filter(n=>n.book!==id);save();render();}
+  }
+  else if(a==='ln-ret'){db.loans.find(x=>x.id===id).ret=todayISO();save();render();showToast('Book returned.');}
+  else if(a==='nt-edit') noteForm(db.notes.find(n=>n.id===id));
+  else if(a==='nt-del'){if(confirm('Delete this note?')){db.notes=db.notes.filter(n=>n.id!==id);save();render();}}
+});
+
+$('stClass').innerHTML='<option value="">All classes</option>'+CLASSES.map(c=>`<option>${c}</option>`).join('');
+['stSearch','bkSearch','ntSearch'].forEach(i=>$(i).addEventListener('input',render));
+$('stClass').addEventListener('change',render);
+$('stAdd').onclick=()=>stForm(); $('bkAdd').onclick=()=>bkForm(); $('bkIssue').onclick=()=>issueForm(); $('ntAdd').onclick=()=>noteForm();
+$('fSave').onclick=submitForm; $('fCancel').onclick=closeForm; $('fClose').onclick=closeForm;
+$('stCsv').onclick=()=>{
+  const H=['Reg No','Name','Father','Class','Section','Gender','DOB','Phone','Address','Fee','Remarks'], F=['reg','name','father','cls','sec','gender','dob','phone','addr','fee','rem'];
+  const q=x=>'"'+String(x||'').replace(/"/g,'""')+'"';
+  dl('students.csv',[H.map(q).join(',')].concat(db.students.map(s=>F.map(k=>q(s[k])).join(','))).join('\n'),'text/csv');
+};
+const KEYS=['cornerstone_store_docs_v1','cornerstone_ledger_items_v1','cornerstone_ledger_tx_v1','cornerstone_ledger_issues_v1','cornerstone_ledger_sicounter_v1',K];
+$('bxExport').onclick=()=>{const o={};KEYS.forEach(k=>o[k]=localStorage.getItem(k));dl('cornerstone-backup-'+todayISO()+'.json',JSON.stringify(o),'application/json');};
+$('bxImport').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result); if(!confirm('This replaces all current data. Continue?')) return; KEYS.forEach(k=>{if(o[k]!=null) localStorage.setItem(k,o[k]);}); location.reload();}catch(x){showToast('Invalid backup file.');}};
+  r.readAsText(f);
+};
+
+function readCover(f,cb){
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,240/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',0.7));};im.src=r.result;};
+  r.readAsDataURL(f);
+}
+$('fBody').addEventListener('change',e=>{
+  if(e.target.type!=='file') return;
+  readCover(e.target.files[0],d=>{window._cov=d;const im=$(e.target.id+'_p');im.src=d;im.style.display='block';});
+});
+/* Add Item modal: uniform size / book name + cover */
+const toggleExtra=()=>{const c=$('newCategory').value.toLowerCase(),nb=/note\s*-?\s*books?|\bcop(y|ies)\b/.test(c),bk=/\bbooks?\b/.test(c)&&!nb;$('uniWrap').style.display=c.includes('uniform')?'block':'none';$('nbWrap').style.display=nb?'block':'none';$('bookWrap').style.display=bk?'block':'none';};
+$('newCategory').addEventListener('input',toggleExtra); $('newCategory').addEventListener('change',toggleExtra);
+$('newBookName').addEventListener('input',()=>{$('newName').value=$('newBookName').value;});
+$('newCover').addEventListener('change',e=>readCover(e.target.files[0],d=>{window._newCover=d;const im=$('newCoverPrev');im.src=d;im.style.display='block';}));
+const _open=window.openAddModal;
+window.openAddModal=function(){_open();window._newCover='';['newSize','newBookName','newCover','newNbType','newNbPages'].forEach(i=>$(i).value='');$('newCoverPrev').style.display='none';toggleExtra();};
+/* Store Issue: editable description without losing focus */
+const SIF={'si-desc':'name','si-unit':'unit','si-purpose':'purpose','si-costid':'costId','si-costdesc':'costDesc','si-allid':'allId'};
+$('siBody').addEventListener('input',e=>{
+  const tr=e.target.closest('tr'); if(!tr) return;
+  e.stopPropagation();
+  const row=siRows[parseInt(tr.dataset.idx,10)], cl=e.target.classList;
+  for(const k in SIF) if(cl.contains(k)) row[SIF[k]]=e.target.value;
+  if(cl.contains('si-issqty')) row.issQty=parseFloat(e.target.value)||0;
+  if(cl.contains('si-issrate')) row.issRate=parseFloat(e.target.value)||0;
+  row.total=(row.issQty||0)*(row.issRate||0);
+  tr.querySelector('.si-total').value=fmtNum(row.total);
+  updateSiGrandTotal();
+},true);
+$('siBody').addEventListener('change',e=>{
+  if(!e.target.classList.contains('si-desc')) return;
+  const tr=e.target.closest('tr'), row=siRows[parseInt(tr.dataset.idx,10)], v=e.target.value.trim().toLowerCase();
+  const it=state.items.find(i=>i.name.toLowerCase()===v);
+  if(it){row.code=it.code;row.name=it.name;row.unit=it.unit;row.avail=it.qty;row.issRate=it.rate;row.total=(row.issQty||0)*it.rate;if(parseInt(tr.dataset.idx,10)===siRows.length-1) siRows.push(newBlankSiRow());renderSiRows();}
+});
+render();
+})();
+</script>
+<script>
+(function(){
+const $=id=>document.getElementById(id), esc=escapeHtml, K='cornerstone_store_docs_v1';
+let S={docs:[],cons:[],n:{}};
+try{const x=localStorage.getItem(K); if(x) S=Object.assign(S,JSON.parse(x));}catch(e){}
+const sv=()=>{try{localStorage.setItem(K,JSON.stringify(S));}catch(e){showToast('Save failed');}};
+const T={PO:{n:'Purchase Orders',s:'Purchase Order',p:'Supplier'},GRN:{n:'Goods Receipts',s:'Goods Receipt (GRN)',p:'Supplier'},TO:{n:'Transfer Out',s:'Transfer Out',p:'Receiving Store'},TI:{n:'Transfer In',s:'Transfer In',p:'Issuing Store'},ADJ:{n:'Store Adj.',s:'Store Adjustment',p:'Reason'},SL:{n:'Store Sales',s:'Store Sale',p:'Sold To'}};
+const DIR={GRN:1,TI:1,ADJ:1,TO:-1,SL:-1};
+let cur='PO', dType='PO', dr=[], linkPO=null, lastRep=null;
+const item=c=>state.items.find(i=>i.code.toLowerCase()===String(c||'').trim().toLowerCase());
+const blank=()=>({code:'',name:'',unit:'',qty:0,rate:0});
+const dTot=d=>d.rows.reduce((a,r)=>a+r.qty*r.rate,0);
+const sgn=x=>x.type==='in'?1:-1;
+const empty=(n,t)=>`<tr class="empty-row"><td colspan="${n}">${t}</td></tr>`;
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();}
+
+function apply(d,sign){
+  d.rows.forEach(r=>{
+    const it=item(r.code); if(!it) return;
+    const q=DIR[d.type]*sign*r.qty; if(!q) return;
+    if(d.type==='GRN'&&sign>0&&r.rate>0&&it.qty+r.qty>0) it.rate=(it.qty*it.rate+r.qty*r.rate)/(it.qty+r.qty);
+    it.qty+=q;
+    state.tx.push({itemId:it.id,itemName:it.name,type:q>0?'in':'out',qty:Math.abs(q),reason:(sign>0?'':'Cancelled ')+d.no,at:Date.now()});
+  });
+  saveState();
+}
+
+/* ---------- document editor ---------- */
+function openDoc(t,pre){
+  dType=t; dr=pre?pre.rows.map(r=>({...r})):[blank()]; linkPO=pre&&pre.po||null;
+  $('dTitle').textContent='New '+T[t].s; $('dDate').value=todayISO(); $('dNo').value='(auto)';
+  $('dParty').value=pre?pre.party:''; $('dRem').value=''; $('dPartyL').textContent=T[t].p; $('dErr').style.display='none';
+  $('dPartyList').innerHTML=[...new Set(['Canal Garden Campus','Global Campus',...S.docs.map(d=>d.party).filter(Boolean)])].map(x=>`<option value="${esc(x)}">`).join('');
+  drawRows(); $('dOverlay').classList.add('open');
+}
+const closeDoc=()=>$('dOverlay').classList.remove('open');
+const drawTot=()=>{$('dTotal').textContent=fmtMoney(dr.reduce((a,r)=>a+r.qty*r.rate,0));};
+function drawRows(){
+  $('dRows').innerHTML=dr.map((r,i)=>`<tr data-i="${i}"><td><input class="d-code" list="itemCodeList" value="${esc(r.code)}"></td><td><input class="d-name" list="itemNameList" value="${esc(r.name)}" placeholder="Auto or type"></td><td><input class="d-unit" value="${esc(r.unit)}"></td><td><input class="d-qty" type="number" step="0.01" value="${r.qty||''}"></td><td><input class="d-rate" type="number" step="0.01" value="${r.rate||''}"></td><td><input class="d-tot" readonly value="${fmtNum(r.qty*r.rate)}"></td><td>${dr.length>1?`<button type="button" class="si-remove-btn" data-i="${i}">&times;</button>`:''}</td></tr>`).join('');
+  drawTot();
+}
+function fill(r,it){r.code=it.code;r.name=it.name;r.unit=it.unit;r.rate=(dType==='SL'&&it.sale)?it.sale:it.rate;}
+$('dRows').addEventListener('input',e=>{
+  const tr=e.target.closest('tr'); if(!tr) return; const r=dr[+tr.dataset.i], c=e.target.classList;
+  if(c.contains('d-code')) r.code=e.target.value; if(c.contains('d-name')) r.name=e.target.value; if(c.contains('d-unit')) r.unit=e.target.value;
+  if(c.contains('d-qty')) r.qty=parseFloat(e.target.value)||0; if(c.contains('d-rate')) r.rate=parseFloat(e.target.value)||0;
+  tr.querySelector('.d-tot').value=fmtNum(r.qty*r.rate); drawTot();
+});
+$('dRows').addEventListener('change',e=>{
+  const tr=e.target.closest('tr'); if(!tr) return; const i=+tr.dataset.i, r=dr[i], c=e.target.classList;
+  const it=c.contains('d-code')?item(e.target.value):c.contains('d-name')?state.items.find(x=>x.name.toLowerCase()===e.target.value.trim().toLowerCase()):null;
+  if(it){fill(r,it); if(i===dr.length-1) dr.push(blank()); drawRows();}
+});
+$('dRows').addEventListener('click',e=>{const b=e.target.closest('.si-remove-btn'); if(b){dr.splice(+b.dataset.i,1);drawRows();}});
+$('dAddRow').onclick=()=>{dr.push(blank());drawRows();};
+$('dClose').onclick=closeDoc; $('dCancel').onclick=closeDoc;
+$('dSave').onclick=()=>{
+  const err=m=>{$('dErr').textContent=m;$('dErr').style.display='block';};
+  const rows=dr.filter(r=>(r.code||r.name)&&r.qty);
+  const t=dType, use={};
+  if(!rows.length) return err('Add at least one item with a quantity.');
+  for(const r of rows){
+    if(r.qty<0&&t!=='ADJ') return err('Quantity must be positive.');
+    if(t!=='PO'){const it=item(r.code); if(!it) return err('Item code "'+r.code+'" is not in the stock ledger. Add the item first.'); use[it.id]=(use[it.id]||0)+r.qty;}
+  }
+  if(t==='TO'||t==='SL'||t==='ADJ') for(const id in use){
+    const it=state.items.find(i=>String(i.id)===id), out=t==='ADJ'?-use[id]:use[id];
+    if(out>it.qty) return err('Not enough stock for '+it.name+' (available '+fmtNum(it.qty)+').');
+  }
+  const n=(S.n[t]||0)+1; S.n[t]=n; const d=new Date();
+  const doc={id:Date.now()+'-'+n,type:t,no:t+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+String(n).padStart(4,'0'),date:$('dDate').value||todayISO(),party:$('dParty').value.trim(),rem:$('dRem').value.trim(),rows:rows.map(r=>({...r})),status:(t==='PO'||t==='TO'||t==='TI')?'Pending':'Posted',at:Date.now()};
+  if(t==='GRN'||t==='TO'||t==='ADJ'||t==='SL'){apply(doc,1);doc.posted=true;}
+  if(linkPO){const po=S.docs.find(x=>x.id===linkPO); if(po) po.status='Received';}
+  S.docs.push(doc); sv(); closeDoc(); renderDocs(); renderAll(); showToast(doc.no+' saved.');
+};
+
+/* ---------- list ---------- */
+function renderDocs(){
+  $('dTypes').innerHTML=Object.keys(T).map(k=>`<div class="pill ${k===cur?'active':''}" data-t="${k}">${T[k].n}</div>`).join('');
+  $('dPartyH').textContent=T[cur].p; $('dSale').style.display=cur==='SL'?'':'none';
+  const sel=$('dStatus');
+  if(sel.dataset.t!==cur){sel.innerHTML='<option value="">All status</option>'+({PO:['Pending','Received'],TO:['Pending','Completed'],TI:['Pending','Completed']}[cur]||['Posted']).map(x=>`<option>${x}</option>`).join('');sel.dataset.t=cur;}
+  const q=$('dSearch').value.trim().toLowerCase(), st=sel.value;
+  const L=S.docs.filter(d=>d.type===cur&&(!st||d.status===st)&&(!q||(d.no+' '+(d.party||'')+' '+d.rows.map(r=>r.name+' '+r.code).join(' ')).toLowerCase().includes(q))).sort((a,b)=>b.at-a.at);
+  $('dBody').innerHTML=L.length?L.map(d=>{
+    const pend=d.status==='Pending', act=cur==='PO'&&pend?'<button class="in" data-d="grn" data-id="'+d.id+'">Receive</button>':cur==='TI'&&pend?'<button class="in" data-d="recv" data-id="'+d.id+'">Receive</button>':cur==='TO'&&pend?'<button class="in" data-d="done" data-id="'+d.id+'">Complete</button>':'';
+    return `<tr><td><span class="code">${d.no}</span></td><td>${d.date}</td><td>${esc(d.party||'')}</td><td>${d.rows.length}</td><td>${fmtMoney(dTot(d))}</td><td><span class="hist-badge ${pend?'mid':'in'}">${d.status}</span></td><td><div class="rowbtns">${act}<button style="background:var(--ink)" data-d="print" data-id="${d.id}">Print</button><button class="out" data-d="del" data-id="${d.id}">Delete</button></div></td></tr>`;
+  }).join(''):empty(7,'No records. Click "+ New".');
+}
+function printDoc(d){
+  const w=window.open('','_blank'); if(!w) return showToast('Allow pop-ups to print.');
+  w.document.write(`<!DOCTYPE html><html><head><title>${d.no}</title><style>body{font-family:Georgia,serif;padding:20px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #999;padding:6px;font-size:12px}th{background:#233C2C;color:#fff}</style></head><body><h2>Cornerstone Global Campus - ${T[d.type].s}</h2><p><b>No:</b> ${d.no} | <b>Date:</b> ${d.date} | <b>${T[d.type].p}:</b> ${esc(d.party||'-')} | <b>Status:</b> ${d.status}</p><table><thead><tr><th>#</th><th>Code</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead><tbody>${d.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.code)}</td><td>${esc(r.name)}</td><td>${esc(r.unit)}</td><td>${r.qty}</td><td>${r.rate}</td><td>${r.qty*r.rate}</td></tr>`).join('')}</tbody></table><p><b>Total: ${fmtMoney(dTot(d))}</b></p>${d.rem?'<p>Remarks: '+esc(d.rem)+'</p>':''}</body></html>`);
+  w.document.close(); setTimeout(()=>w.print(),300);
+}
+function delDoc(d){
+  if(!confirm('Delete '+d.no+'?')) return;
+  if(d.posted){
+    if(DIR[d.type]>0) for(const r of d.rows){const it=item(r.code); if(it&&it.qty<r.qty) return showToast('Cannot delete: stock of '+it.name+' is already used.');}
+    apply(d,-1);
+  }
+  S.docs=S.docs.filter(x=>x!==d); sv(); renderDocs(); renderAll();
+}
+
+/* ---------- Consumption setup ---------- */
+function consForm(c){
+  window.openForm(c?'Edit Consumption Setup':'Add Consumption Setup',[
+    {k:'cost',l:'Store Cost ID *',r:1},{k:'cat',l:'Item Category',t:'select',o:ERPCATS},{k:'wh',l:'Warehouse ID'},{k:'br',l:'LOC / Branch Code'},
+    {k:'nom',l:'Nominal Account'},{k:'sub',l:'Sub Account'},{k:'acc',l:'Acc. Cost Center'}
+  ],c||{},v=>{if(c) Object.assign(c,v); else S.cons.push({id:Date.now()+'',at:Date.now(),...v}); sv(); renderCons();});
+}
+function renderCons(){
+  $('cBody').innerHTML=S.cons.length?S.cons.map(c=>`<tr><td>${esc(c.cost)}</td><td>${esc(c.cat||'')}</td><td>${esc(c.wh||'')}</td><td>${esc(c.br||'')}</td><td>${esc(c.nom||'')}</td><td>${esc(c.sub||'')}</td><td>${esc(c.acc||'')}</td><td>${new Date(c.at).toLocaleDateString()}</td><td><div class="rowbtns"><button class="in" data-c="edit" data-id="${c.id}">Edit</button><button class="out" data-c="del" data-id="${c.id}">Delete</button></div></td></tr>`).join(''):empty(9,'No setup yet.');
+}
+
+/* ---------- Reports ---------- */
+function repCats(){
+  const v=$('rCat').value;
+  $('rCat').innerHTML='<option value="">All categories</option>'+[...new Set(state.items.map(i=>i.category))].sort().map(c=>`<option value="${esc(c)}">${esc(shortCat(c))}</option>`).join('');
+  $('rCat').value=v;
+}
+function runReport(){
+  const ty=$('rType').value, cat=$('rCat').value, from=$('rFrom').value, to=$('rTo').value||todayISO();
+  const f0=from?new Date(from+'T00:00:00').getTime():0, t1=new Date(to+'T23:59:59').getTime();
+  const inR=d=>(!from||d>=from)&&d<=to; let title='',h=[],rows=[];
+  if(ty==='items'){
+    title='Items'; h=['Code','Item','Category','Store','Unit','Balance','Avg Rate','Value'];
+    rows=state.items.filter(i=>!cat||i.category===cat).map(i=>[i.code,i.name,shortCat(i.category),i.store,i.unit,fmtNum(i.qty),fmtNum(i.rate),fmtMoney(i.qty*i.rate)]);
+  }else if(ty==='status'){
+    title='Stock Status as on '+to; h=['Code','Item','Category','Unit','Balance','Rate','Value']; let tv=0;
+    rows=state.items.filter(i=>!cat||i.category===cat).map(i=>{const b=i.qty-state.tx.filter(x=>x.itemId===i.id&&x.at>t1).reduce((a,x)=>a+sgn(x)*x.qty,0);tv+=b*i.rate;return [i.code,i.name,shortCat(i.category),i.unit,fmtNum(b),fmtNum(i.rate),fmtMoney(b*i.rate)];});
+    rows.push(['','TOTAL','','','','',fmtMoney(tv)]);
+  }else if(ty==='ledger'){
+    const it=item($('rItem').value); if(!it) return showToast('Enter a valid item code for Item Ledger.');
+    title='Item Ledger: '+it.name+' ('+it.code+')'; h=['Date','Reference','In','Out','Balance'];
+    const tx=state.tx.filter(x=>x.itemId===it.id); let bal=it.qty-tx.reduce((a,x)=>a+sgn(x)*x.qty,0)+tx.filter(x=>x.at<f0).reduce((a,x)=>a+sgn(x)*x.qty,0);
+    rows=[['','Opening balance','','',fmtNum(bal)]];
+    tx.filter(x=>x.at>=f0&&x.at<=t1).forEach(x=>{bal+=sgn(x)*x.qty;rows.push([new Date(x.at).toLocaleDateString(),x.reason||'',x.type==='in'?fmtNum(x.qty):'',x.type==='out'?fmtNum(x.qty):'',fmtNum(bal)]);});
+  }else if(ty==='consumption'){
+    title='Consumption '+(from?from+' to ':'up to ')+to; h=['Code','Item','Category','Qty','Value']; const agg={};
+    state.issues.filter(d=>inR(d.date)).forEach(d=>d.rows.forEach(r=>{const it=item(r.code)||{},k=r.code||r.name,a=agg[k]||(agg[k]={code:r.code,name:r.name||it.name,cat:it.category,qty:0,val:0});a.qty+=r.issQty;a.val+=r.issQty*r.issRate;}));
+    rows=Object.values(agg).filter(a=>!cat||a.cat===cat).map(a=>[a.code,a.name,a.cat?shortCat(a.cat):'',fmtNum(a.qty),fmtMoney(a.val)]);
+  }else if(ty==='issues'){
+    title='Store Issue'; h=['SI No','Date','Department','Store','Items','Total'];
+    rows=state.issues.filter(d=>inR(d.date)).map(d=>[d.siNo,d.date,d.dept,d.store,d.rows.length,fmtMoney(d.total)]);
+  }else{
+    const t=ty==='grn'?'GRN':'SL'; title=ty==='grn'?'GRN':'Store Sale'; h=['No','Date',T[t].p,'Items','Total'];
+    rows=S.docs.filter(d=>d.type===t&&inR(d.date)).map(d=>[d.no,d.date,d.party||'',d.rows.length,fmtMoney(dTot(d))]);
+  }
+  lastRep={title,h,rows};
+  $('rOut').innerHTML=`<h3 class="sec">${esc(title)}</h3><div class="ledger-wrap"><div class="table-scroll"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}<th style="width:1px"></th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}<td></td></tr>`).join(''):empty(h.length+1,'No data for these filters.')}</tbody></table></div></div>`;
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const p=e.target.closest('.pill'); if(p){cur=p.dataset.t;renderDocs();return;}
+  const b=e.target.closest('[data-d],[data-c]'); if(!b) return; const id=b.dataset.id;
+  if(b.dataset.c){
+    const c=S.cons.find(x=>x.id===id);
+    if(b.dataset.c==='edit') consForm(c); else if(confirm('Delete this setup?')){S.cons=S.cons.filter(x=>x!==c);sv();renderCons();}
+    return;
+  }
+  const d=S.docs.find(x=>x.id===id), a=b.dataset.d;
+  if(a==='print') printDoc(d);
+  else if(a==='del') delDoc(d);
+  else if(a==='grn') openDoc('GRN',{rows:d.rows,party:d.party,po:d.id});
+  else if(a==='recv'){apply(d,1);d.posted=true;d.status='Completed';sv();renderDocs();renderAll();showToast('Stock received.');}
+  else if(a==='done'){d.status='Completed';sv();renderDocs();}
+});
+$('dNew').onclick=()=>openDoc(cur);
+$('dSale').onclick=()=>{
+  if(!state.items.length) return showToast('No items in stock.');
+  window.openForm('Set Sale Rate',[{k:'code',l:'Item',t:'select',o:state.items.map(i=>({v:i.code,n:i.code+' - '+i.name}))},{k:'rate',l:'Sale Rate *',t:'number',r:1}],{},v=>{const it=item(v.code);it.sale=parseFloat(v.rate)||0;saveState();showToast('Sale rate set for '+it.name);});
+};
+$('dSearch').addEventListener('input',renderDocs); $('dStatus').addEventListener('change',renderDocs);
+$('cAdd').onclick=()=>consForm();
+$('rRun').onclick=runReport; $('rCat').addEventListener('focus',repCats);
+$('rPrint').onclick=()=>window.print();
+$('rCsv').onclick=()=>{
+  if(!lastRep) return showToast('Run a report first.');
+  const q=x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"';
+  dl(lastRep.title.replace(/\W+/g,'_')+'.csv',[lastRep.h.map(q).join(',')].concat(lastRep.rows.map(r=>r.map(q).join(','))).join('\n'),'text/csv');
+};
+repCats(); renderDocs(); renderCons();
+})();
 </script>
 </body>
 </html>
