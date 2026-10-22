@@ -209,6 +209,7 @@
   .si-table input[readonly]{background:var(--paper-dim); color:var(--ink-soft);}
   .si-remove-btn{background:var(--red); color:#fff; border:none; border-radius:2px; padding:5px 9px; cursor:pointer; font-size:0.75rem;}
   .si-addrow{margin-top:10px;}
+  .si-hide{display:none !important;}
   .modal.wide{max-width:780px;}
   table.si-table.bulk-table{min-width:600px; width:100%;}
   .bulk-table th{font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); text-align:left; padding:4px 5px;}
@@ -341,7 +342,7 @@
           <thead>
             <tr>
               <th>Code</th><th>Description</th><th>Unit</th><th>Avai. Qty</th><th>Iss. Qty</th>
-              <th>Iss. Rate</th><th>Total</th><th>Purpose</th><th>Cost ID</th><th>Cost Desc.</th><th>All. ID</th><th></th>
+              <th class="si-hide">Iss. Rate</th><th class="si-hide">Total</th><th>Purpose</th><th>Cost ID</th><th>Cost Desc.</th><th>All. ID</th><th></th>
             </tr>
           </thead>
           <tbody id="siBody"></tbody>
@@ -349,7 +350,7 @@
       </div>
     </div>
     <button class="btn ghost si-addrow" id="siAddRow" type="button">+ Add Row</button>
-    <div class="si-grand">Grand Total: <strong id="siGrandTotal">Rs. 0</strong></div>
+    <div class="si-grand si-hide">Grand Total: <strong id="siGrandTotal">Rs. 0</strong></div>
 
     <div id="siListPanel" style="display:none; margin-top:24px;">
       <h3 style="font-family:Georgia,serif;">Saved Store Issues</h3>
@@ -992,8 +993,8 @@ function renderSiRows(){
       <td><input type="text" class="si-unit" value="${escapeHtml(r.unit)}" placeholder="Unit"></td>
       <td><input type="text" class="si-avail" value="${fmtNum(r.avail)}" readonly></td>
       <td><input type="number" class="si-issqty" min="0" step="0.01" value="${r.issQty || ''}"></td>
-      <td><input type="number" class="si-issrate" min="0" step="0.0001" value="${r.issRate || ''}"></td>
-      <td><input type="text" class="si-total" value="${fmtNum(r.total)}" readonly></td>
+      <td class="si-hide"><input type="number" class="si-issrate" min="0" step="0.0001" value="${r.issRate || ''}"></td>
+      <td class="si-hide"><input type="text" class="si-total" value="${fmtNum(r.total)}" readonly></td>
       <td><input type="text" class="si-purpose" value="${escapeHtml(r.purpose)}" placeholder="Purpose"></td>
       <td><input type="text" class="si-costid" value="${escapeHtml(r.costId)}"></td>
       <td><input type="text" class="si-costdesc" value="${escapeHtml(r.costDesc)}"></td>
@@ -1060,8 +1061,8 @@ function printVoucherWindow(v){
   w.document.write(`<!DOCTYPE html><html><head><title>Voucher ${v.siNo}</title><style>body{font-family:Georgia,serif;padding:20px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th,td{border:1px solid #999;padding:6px;font-size:12px;}th{background:#233C2C;color:#fff;}</style></head><body>
     <h2>Cornerstone School - Store Issue Voucher</h2>
     <p><strong>SI No:</strong> ${v.siNo} | <strong>Date:</strong> ${v.date} | <strong>Store:</strong> ${v.store} | <strong>Department:</strong> ${v.dept||''} | <strong>Issued To:</strong> ${v.to||'-'}</p>
-    <table><thead><tr><th>#</th><th>Code</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
-    <tbody>${v.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.code}</td><td>${r.name}</td><td>${r.unit}</td><td>${r.issQty}</td><td>${r.issRate}</td><td>${r.issQty*r.issRate}</td></tr>`).join('')}</tbody></table>
+    <table><thead><tr><th>#</th><th>Code</th><th>Description</th><th>Unit</th><th>Qty</th></tr></thead>
+    <tbody>${v.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.code}</td><td>${r.name}</td><td>${r.unit}</td><td>${r.issQty}</td></tr>`).join('')}</tbody></table>
   </body></html>`);
   w.document.close();
   setTimeout(()=>w.print(), 300);
@@ -1071,7 +1072,7 @@ function renderSiList(){
   document.getElementById('siListBody').innerHTML = state.issues.length === 0 ? '<div style="padding:10px;">No saved issues.</div>' : [...state.issues].reverse().map(d=>`
     <div class="hist-item">
       <div><strong>${d.siNo}</strong> (${d.store})<div class="hist-meta">${d.rows.length} items &middot; ${d.date} &middot; To: ${escapeHtml(d.to||'-')} (${escapeHtml(d.dept||'')})</div></div>
-      <div class="hist-right"><div>${fmtMoney(d.total)}</div><button type="button" class="btn ghost" onclick="editSiByNo('${d.siNo}')" style="padding:2px 8px;font-size:11px;margin-right:6px;">Edit</button><button type="button" class="btn ghost" onclick="printVoucherWindow(${JSON.stringify(d).replace(/"/g, '&quot;')})" style="padding:2px 8px;font-size:11px;">Print</button></div>
+      <div class="hist-right"><button type="button" class="btn ghost" onclick="editSiByNo('${d.siNo}')" style="padding:2px 8px;font-size:11px;margin-right:6px;">Edit</button><button type="button" class="btn ghost" onclick="printVoucherWindow(${JSON.stringify(d).replace(/"/g, '&quot;')})" style="padding:2px 8px;font-size:11px;">Print</button></div>
     </div>`).join('');
 }
 
