@@ -209,6 +209,14 @@
   .si-table input[readonly]{background:var(--paper-dim); color:var(--ink-soft);}
   .si-remove-btn{background:var(--red); color:#fff; border:none; border-radius:2px; padding:5px 9px; cursor:pointer; font-size:0.75rem;}
   .si-addrow{margin-top:10px;}
+  .modal.wide{max-width:780px;}
+  table.si-table.bulk-table{min-width:600px; width:100%;}
+  .bulk-table th{font-size:0.7rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); text-align:left; padding:4px 5px;}
+  .add-mode{display:flex; gap:8px; margin:6px 0 4px;}
+  .add-mode .btn{flex:1; text-align:center;}
+  .bulk-paste{margin-top:12px; font-size:0.8rem; color:var(--ink-soft);}
+  .bulk-paste summary{cursor:pointer;}
+  .bulk-paste textarea{min-height:80px; margin:8px 0;}
   .si-grand{
     text-align:right; margin-top:12px; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
     font-size:0.95rem; color:var(--ink);
@@ -291,7 +299,6 @@
       <select id="catFilter"><option value="">All categories</option></select>
       <button class="btn" id="addItemBtn">+ Add Item</button>
       <button class="btn ghost" id="printBtn">Print</button>
-      <button class="btn ghost" id="resetBtn" title="Restore original balances">Reset to report</button>
     </div>
 
     <div class="ledger-wrap">
@@ -462,15 +469,20 @@
 
 <!-- Add Item Modal -->
 <div class="overlay" id="addOverlay">
-  <div class="modal">
+  <div class="modal" id="addModalBox">
     <button class="close-x" id="closeAddModal">&times;</button>
     <h2>Add New Item</h2>
     <div class="item-name">Create a new stock ledger entry.</div>
+    <div class="add-mode">
+      <button type="button" class="btn" id="modeSingle">Single Item</button>
+      <button type="button" class="btn ghost" id="modeBulk">Bulk Items</button>
+    </div>
+    <div id="singleWrap">
     <label>Item name</label>
     <input type="text" id="newName" placeholder="e.g. Whiteboard Marker">
     <label>Item code</label>
     <div class="search-box" style="margin-bottom:0;">
-      <input type="text" id="newCode" placeholder="e.g. 0999001">
+      <input type="text" id="newCode" placeholder="Auto-generated">
       <button class="icon-search-btn" id="lookupCodeBtn" title="Look up code" type="button">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6.5" stroke="#2E6DA4" stroke-width="2"/><line x1="15.4" y1="15.4" x2="21" y2="21" stroke="#2E6DA4" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
@@ -490,6 +502,27 @@
     <div id="uniWrap" style="display:none"><label>Uniform size</label><input type="text" id="newSize" placeholder="e.g. 26, 28, S, M, L" list="sizeList"><datalist id="sizeList"><option value="XS"><option value="S"><option value="M"><option value="L"><option value="XL"><option value="24"><option value="26"><option value="28"><option value="30"><option value="32"><option value="34"><option value="36"></datalist></div>
     <div id="nbWrap" style="display:none"><label>Notebook type</label><input type="text" id="newNbType" placeholder="e.g. Ruled, Plain, Drawing, Graph" list="nbTypeList"><datalist id="nbTypeList"><option value="Ruled"><option value="Plain"><option value="Drawing"><option value="Graph"><option value="Urdu Ruled"></datalist><label>Pages</label><input type="number" id="newNbPages" min="1" placeholder="e.g. 100, 200"></div>
     <div id="bookWrap" style="display:none"><label>Book name</label><input type="text" id="newBookName" placeholder="e.g. English Grammar Class 5"><label>Book cover</label><input type="file" id="newCover" accept="image/*"><img id="newCoverPrev" alt="" style="display:none;max-height:90px;margin-top:6px"></div>
+    </div>
+    <div id="bulkWrap" style="display:none">
+      <label>Category (for all items below)</label>
+      <input type="text" id="bulkCategory" placeholder="Category" list="catList">
+      <label>Store (for all items below)</label>
+      <input type="text" id="bulkStore" placeholder="Store name" list="storeList">
+      <datalist id="unitList"></datalist>
+      <div class="si-table-wrap" style="margin-top:12px">
+        <table class="si-table bulk-table">
+          <thead><tr><th style="width:17%">Code (optional)</th><th>Item name</th><th style="width:13%">Unit</th><th style="width:14%">Qty</th><th style="width:15%">Price</th><th style="width:34px"></th></tr></thead>
+          <tbody id="bulkBody"></tbody>
+        </table>
+      </div>
+      <button class="btn ghost si-addrow" id="bulkAddRow" type="button">+ Add Row</button>
+      <details class="bulk-paste">
+        <summary>Paste from Excel / Sheet</summary>
+        <div style="margin-top:6px">One item per line: <b>Name, Unit, Qty, Price</b> (tab or comma separated). Code ho to pehle column mein dein.</div>
+        <textarea id="bulkPaste" placeholder="Marker Black, NO, 50, 60&#10;Duster, NO, 20, 35"></textarea>
+        <button class="btn ghost" id="bulkImport" type="button">Add to rows</button>
+      </details>
+    </div>
     <div class="modal-err" id="addErr">Fill in all required fields.</div>
     <div class="modal-actions">
       <button class="btn ghost" id="cancelAddModal">Cancel</button>
@@ -518,6 +551,28 @@
 <script>
 const ERPCATS = ['01 - Stationery Items','02 - General Items','03 - Sports Items','04 - Crockery Items','05 - Uniform','06 - Food Items','07 - Cleaning Items','Notebooks','22 - Furniture & Fixture','23 - Computers, Networking, Printer','24 - Electric Equipments','25 - Other Assets','26 - Laboratory Equipments','27 - Library Books','28 - Security','29 - Kitchen Items','30 - Infirmary Items','31 - Horticulture Items','32 - Software & Systems','33 - Course Books (1 Years)'];
 const ITEMS = [{"code":"0101002","name":"Chart Paper (White)","unit":"NO","category":"Stationery Items - Stationery Items","store":"Fixed Assets Purchase Store","qty":10.0,"rate":45.0,"value":450.0,"id":1},{"code":"01010028","name":"Sticko","unit":"NO","category":"Stationery Items - Stationery Items","store":"Fixed Assets Purchase Store","qty":7.0,"rate":580.0,"value":4060.0,"id":2}];
+
+const INVOICE_ITEMS = [["LEADS PENCIL ORO", "PKT", 55, 215], ["ERASER KIDKO", "PKT", 6, 675], ["SHARPNER SILVER", "PKT", 3, 780], ["ORO SCALE 12\"", "BOX", 2, 1440], ["ORO COLOR PENCIL 12F CARD", "PKT", 66, 265], ["A4 COLOR PAPER MULTI", "PKT", 7, 550], ["1\" SCOTH TAPE", "PCS", 24, 80], ["PIANO BOARD MARKER", "PKT", 9, 680], ["PIANO 0.8 RED BALL PEN", "BOX", 4, 200], ["STICKOO STICKS 8GM", "PCS", 100, 70], ["STICKOO 125ML GLUE TUBE", "PCS", 17, 580], ["ORO BALNKO", "PCS", 12, 60], ["TUMB PINS", "PKT", 1, 500], ["DOLLAR STAPLER PIN 24/6", "PKT", 50, 67], ["BLC A4 PAPER RIM", "PCS", 17, 1000], ["STICKY NOTE 3X3 MULTI", "PCS", 15, 90], ["PIANO POINTER", "PKT", 36, 275], ["DOLLAR HIGHLITER", "PCS", 18, 48], ["CHART PAPER MULTI", "PCS", 140, 35], ["CHART PAPER WHITE", "PCS", 20, 45], ["TEMPO COLOUR MARKER", "PKT", 5, 140], ["1' MASKING TAPE", "NO", 24, 80], ["A4 GLITTER PAPER MULTI", "PKT", 5, 350], ["DOLLAR PRMA MARKER BLACK", "BOX", 1, 780], ["PAPER CLIP 30MM", "BOX", 1, 750], ["PLAY DOUGH", "NO", 5, 45], ["MCB WHITE POCKET", "NO", 75, 45], ["CREAPE PAPER MULTI", "PKT", 4, 400], ["PIANO BOARD MARKER REFIL", "BOX", 1, 1090], ["ICE CREAM STICKS SIPLE LGER", "PKT", 7, 35]];
+const INVOICE_FLAG = 'cornerstone_inv0034_v1';
+function importInvoiceItems(){
+  try{ if(localStorage.getItem(INVOICE_FLAG)) return; }catch(e){ return; }
+  const norm = s => String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
+  const skip = ['chart paper white','stickoo 125ml glue tube']; /* already in ledger as Chart Paper (White) / Sticko */
+  const names = new Set(state.items.map(i=>norm(i.name)));
+  const codes = new Set(state.items.map(i=>String(i.code).toLowerCase()));
+  let id = state.items.reduce((m,i)=>Math.max(m,i.id),0);
+  let auto = state.items.reduce((m,i)=>{ const x=/^ITM(\d+)$/i.exec(i.code); return x?Math.max(m,parseInt(x[1],10)):m; },0);
+  INVOICE_ITEMS.forEach(([name,unit,qty,rate])=>{
+    const k = norm(name);
+    if(skip.includes(k) || names.has(k)) return;
+    let code; do{ auto++; code='ITM'+String(auto).padStart(4,'0'); }while(codes.has(code.toLowerCase()));
+    codes.add(code.toLowerCase()); names.add(k); id++;
+    state.items.push({ id, code, name, unit, category:'Stationery Items - Stationery Items', store:'General and Stationery Store', qty, rate, value:qty*rate, size:'', nbType:'', nbPages:'', bookName:'', cover:'' });
+    state.tx.push({ itemId:id, itemName:name, type:'in', qty, reason:'New item added (Invoice 0034)', at:Date.now() });
+  });
+  try{ localStorage.setItem(INVOICE_FLAG,'1'); }catch(e){}
+  saveState();
+}
 
 let state = { items: null, tx: [], issues: [], siCounter: 1 };
 let editSi = null; let modalMode = null, modalItemId = null, siRows = [];
@@ -625,6 +680,7 @@ function renderLedger(){
           <button class="in" data-act="in" data-id="${i.id}">Stock In</button>
           <button class="out" data-act="out" data-id="${i.id}">Stock Out</button>
           <button style="background:var(--ink)" data-act="edit" data-id="${i.id}">Edit</button>
+          <button style="background:#6b1f14" data-act="delete" data-id="${i.id}">Delete</button>
         </div>
       </td>
     </tr>`;
@@ -704,31 +760,33 @@ function confirmModalAction(){
   showToast(`${modalMode === 'in' ? 'Received' : 'Issued'} ${fmtNum(qty)} ${item.unit}`);
 }
 
-function resetToReport(){
-  if(!confirm('Restore original report balances?')) return;
-  state.items = JSON.parse(JSON.stringify(ITEMS));
-  state.tx = [];
-  saveState();
-  renderAll();
-  showToast('Ledger restored.');
+function nextItemCode(){
+  const used = new Set(state.items.map(i=>String(i.code).toLowerCase()));
+  let n = state.items.reduce((m,i)=>{ const x=/^ITM(\d+)$/i.exec(i.code); return x?Math.max(m,parseInt(x[1],10)):m; },0);
+  let c;
+  do{ n++; c = 'ITM' + String(n).padStart(4,'0'); }while(used.has(c.toLowerCase()));
+  return c;
 }
 
 function openAddModal(){
   document.getElementById('newName').value = '';
-  document.getElementById('newCode').value = '';
+  document.getElementById('newCode').value = nextItemCode();
   document.getElementById('newUnit').value = '';
   document.getElementById('newCategory').value = '';
   document.getElementById('newStore').value = '';
   document.getElementById('newQty').value = '';
   document.getElementById('newRate').value = '';
   document.getElementById('addErr').style.display = 'none';
+  document.getElementById('unitList').innerHTML = [...new Set(state.items.map(i=>i.unit))].filter(Boolean).map(u=>`<option value="${escapeHtml(u)}">`).join('');
+  resetBulk();
+  setAddMode('single');
   document.getElementById('addOverlay').classList.add('open');
 }
 function closeAddModal(){ document.getElementById('addOverlay').classList.remove('open'); }
 
 function confirmAddItem(){
   const name = document.getElementById('newName').value.trim();
-  const code = document.getElementById('newCode').value.trim();
+  let code = document.getElementById('newCode').value.trim();
   const unit = document.getElementById('newUnit').value.trim();
   const category = document.getElementById('newCategory').value.trim() || 'Uncategorized';
   const store = document.getElementById('newStore').value.trim() || 'General and Stationery Store';
@@ -736,7 +794,8 @@ function confirmAddItem(){
   const rate = parseFloat(document.getElementById('newRate').value) || 0;
   const err = document.getElementById('addErr');
 
-  if(!name || !code || !unit || isNaN(qty) || qty < 0){
+  if(!code) code = nextItemCode();
+  if(!name || !unit || isNaN(qty) || qty < 0){
     err.textContent = 'Fill in all required fields.';
     err.style.display = 'block';
     return;
@@ -756,6 +815,11 @@ function confirmAddItem(){
   const nbType = document.getElementById('newNbType').value.trim(), nbPages = document.getElementById('newNbPages').value.trim();
   const nbInfo = [nbPages ? nbPages + ' pages' : '', nbType].filter(Boolean).join(', ');
   const finalName = isU ? `${name} (Size ${size})` : (isN && nbInfo) ? `${name} (${nbInfo})` : name;
+  if(state.items.some(i => normName(i.name) === normName(finalName))){
+    err.textContent = 'This item already exists (same name).';
+    err.style.display = 'block';
+    return;
+  }
   state.items.push({ id:newId, code, name: finalName, unit, category, store, qty, rate, value: qty*rate, size: isU ? size : '', nbType: isN ? nbType : '', nbPages: isN ? nbPages : '', bookName: isB ? bookName : '', cover: isB ? (window._newCover || '') : '' });
   state.tx.push({ itemId: newId, itemName: finalName, type:'in', qty:qty, reason: 'New item added', at: Date.now() });
 
@@ -765,6 +829,116 @@ function confirmAddItem(){
   renderAll();
   showToast(`Added: ${name}`);
 }
+
+/* Duplicate check helper + Bulk add */
+function normName(s){ return String(s||'').trim().replace(/\s+/g,' ').toLowerCase(); }
+let addMode = 'single';
+function setAddMode(m){
+  addMode = m;
+  document.getElementById('singleWrap').style.display = m==='single' ? 'block' : 'none';
+  document.getElementById('bulkWrap').style.display = m==='bulk' ? 'block' : 'none';
+  document.getElementById('addModalBox').classList.toggle('wide', m==='bulk');
+  document.getElementById('modeSingle').classList.toggle('ghost', m!=='single');
+  document.getElementById('modeBulk').classList.toggle('ghost', m!=='bulk');
+  document.getElementById('confirmAddModal').textContent = m==='bulk' ? 'Add All Items' : 'Add Item';
+  document.getElementById('addErr').style.display = 'none';
+}
+function bulkRowHtml(v){
+  v = v || {};
+  const e = x => escapeHtml(x===undefined||x===null ? '' : x);
+  return `<tr>
+    <td><input type="text" class="b-code" placeholder="Auto" value="${e(v.code)}"></td>
+    <td><input type="text" class="b-name" placeholder="Item name" value="${e(v.name)}"></td>
+    <td><input type="text" class="b-unit" placeholder="NO" list="unitList" value="${e(v.unit)}"></td>
+    <td><input type="number" class="b-qty" min="0" step="0.01" placeholder="0" value="${e(v.qty)}"></td>
+    <td><input type="number" class="b-rate" min="0" step="0.01" placeholder="0.00" value="${e(v.rate)}"></td>
+    <td><button type="button" class="si-remove-btn b-del" title="Remove row">&times;</button></td>
+  </tr>`;
+}
+function addBulkRow(v){ document.getElementById('bulkBody').insertAdjacentHTML('beforeend', bulkRowHtml(v)); }
+function resetBulk(){
+  document.getElementById('bulkBody').innerHTML = '';
+  for(let i=0;i<5;i++) addBulkRow();
+  document.getElementById('bulkPaste').value = '';
+  document.getElementById('bulkCategory').value = '';
+  document.getElementById('bulkStore').value = '';
+}
+function importBulkPaste(){
+  const box = document.getElementById('bulkPaste');
+  const lines = box.value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  if(!lines.length) return;
+  document.querySelectorAll('#bulkBody tr').forEach(tr=>{
+    if(![...tr.querySelectorAll('input')].some(i=>i.value.trim())) tr.remove();
+  });
+  lines.forEach(l=>{
+    const p = (l.includes('\t') ? l.split('\t') : l.split(',')).map(x=>x.trim());
+    const v = p.length >= 5 ? {code:p[0], name:p[1], unit:p[2], qty:p[3], rate:p[4]}
+                            : {name:p[0], unit:p[1]||'', qty:p[2]||'', rate:p[3]||''};
+    if(v.qty !== '' && isNaN(parseFloat(v.qty))) return; // header line
+    addBulkRow(v);
+  });
+  addBulkRow();
+  box.value = '';
+}
+function confirmBulkAdd(){
+  const err = document.getElementById('addErr');
+  const fail = html => { err.innerHTML = html; err.style.display = 'block'; };
+  const category = document.getElementById('bulkCategory').value.trim() || 'Uncategorized';
+  const store = document.getElementById('bulkStore').value.trim() || 'General and Stationery Store';
+  const rows = [...document.querySelectorAll('#bulkBody tr')].map((tr,idx)=>({
+    n: idx+1,
+    code: tr.querySelector('.b-code').value.trim(),
+    name: tr.querySelector('.b-name').value.trim(),
+    unit: tr.querySelector('.b-unit').value.trim(),
+    qtyS: tr.querySelector('.b-qty').value.trim(),
+    rateS: tr.querySelector('.b-rate').value.trim()
+  })).filter(r => r.code || r.name || r.unit || r.qtyS || r.rateS);
+  if(!rows.length) return fail('Add at least one item.');
+
+  const seenNames = new Set(state.items.map(i=>normName(i.name)));
+  const seenCodes = new Set(state.items.map(i=>String(i.code).toLowerCase()));
+  const problems = [];
+  rows.forEach(r=>{
+    r.qty = parseFloat(r.qtyS);
+    r.rate = r.rateS === '' ? 0 : parseFloat(r.rateS);
+    if(!r.name || !r.unit || isNaN(r.qty) || r.qty < 0 || isNaN(r.rate) || r.rate < 0){
+      problems.push(`Row ${r.n}: name, unit and qty are required.`); return;
+    }
+    const nk = normName(r.name);
+    if(seenNames.has(nk)){ problems.push(`Row ${r.n}: "${escapeHtml(r.name)}" already exists.`); return; }
+    seenNames.add(nk);
+    if(r.code){
+      const ck = r.code.toLowerCase();
+      if(seenCodes.has(ck)){ problems.push(`Row ${r.n}: code ${escapeHtml(r.code)} already exists.`); return; }
+      seenCodes.add(ck);
+    }
+  });
+  if(problems.length){
+    const more = problems.length > 4 ? `<br>...and ${problems.length-4} more.` : '';
+    return fail(problems.slice(0,4).join('<br>') + more);
+  }
+
+  let auto = state.items.reduce((m,i)=>{ const x = /^ITM(\d+)$/i.exec(i.code); return x ? Math.max(m, parseInt(x[1],10)) : m; }, 0);
+  const nextCode = ()=>{
+    let c;
+    do { auto++; c = 'ITM' + String(auto).padStart(4,'0'); } while(seenCodes.has(c.toLowerCase()));
+    seenCodes.add(c.toLowerCase());
+    return c;
+  };
+  let id = state.items.reduce((m,i)=>Math.max(m,i.id),0);
+  rows.forEach(r=>{
+    id++;
+    const code = r.code || nextCode();
+    state.items.push({ id, code, name:r.name, unit:r.unit, category, store, qty:r.qty, rate:r.rate, value:r.qty*r.rate, size:'', nbType:'', nbPages:'', bookName:'', cover:'' });
+    state.tx.push({ itemId:id, itemName:r.name, type:'in', qty:r.qty, reason:'New item added (bulk)', at:Date.now() });
+  });
+  saveState();
+  populateFilters();
+  closeAddModal();
+  renderAll();
+  showToast(`Added ${rows.length} item${rows.length>1?'s':''}`);
+}
+function confirmAddModalAction(){ if(addMode === 'bulk') confirmBulkAdd(); else confirmAddItem(); }
 
 /* Store Issue */
 function todayISO(){
@@ -895,13 +1069,26 @@ function setupEvents(){
   document.getElementById('search').addEventListener('input', renderLedger);
   document.getElementById('storeFilter').addEventListener('change', renderLedger);
   document.getElementById('catFilter').addEventListener('change', renderLedger);
-  document.getElementById('resetBtn').addEventListener('click', resetToReport);
   document.getElementById('printBtn').addEventListener('click', ()=>window.print());
 
   document.getElementById('addItemBtn').addEventListener('click', openAddModal);
   document.getElementById('closeAddModal').addEventListener('click', closeAddModal);
   document.getElementById('cancelAddModal').addEventListener('click', closeAddModal);
-  document.getElementById('confirmAddModal').addEventListener('click', confirmAddItem);
+  document.getElementById('confirmAddModal').addEventListener('click', confirmAddModalAction);
+  document.getElementById('modeSingle').addEventListener('click', ()=>setAddMode('single'));
+  document.getElementById('modeBulk').addEventListener('click', ()=>setAddMode('bulk'));
+  document.getElementById('bulkAddRow').addEventListener('click', ()=>addBulkRow());
+  document.getElementById('bulkImport').addEventListener('click', importBulkPaste);
+  document.getElementById('bulkBody').addEventListener('click', (e)=>{
+    const b = e.target.closest('.b-del'); if(!b) return;
+    b.closest('tr').remove();
+    if(!document.querySelector('#bulkBody tr')) addBulkRow();
+  });
+  document.getElementById('bulkBody').addEventListener('input', (e)=>{
+    if(!e.target.classList.contains('b-name')) return;
+    const tr = e.target.closest('tr');
+    if(tr === document.querySelector('#bulkBody tr:last-child') && e.target.value.trim()) addBulkRow();
+  });
 
   document.getElementById('siBody').addEventListener('change', (e)=>{
     if(!e.target.classList.contains('si-code')) return;
@@ -935,6 +1122,16 @@ function setupEvents(){
   });
 
   document.getElementById('ledgerBody').addEventListener('click', (e)=>{
+    const d = e.target.closest('button[data-act="delete"]'); if(!d) return;
+    e.stopImmediatePropagation();
+    const id = parseInt(d.dataset.id, 10);
+    const it = state.items.find(i => i.id === id); if(!it) return;
+    if(!confirm(`Delete "${it.name}" (${it.code}) from the ledger?\nBalance: ${fmtNum(it.qty)} ${it.unit}`)) return;
+    state.items = state.items.filter(i => i.id !== id);
+    saveState(); populateFilters(); renderAll();
+    showToast(`Deleted: ${it.name}`);
+  }, true);
+  document.getElementById('ledgerBody').addEventListener('click', (e)=>{
     const btn = e.target.closest('button[data-act]');
     if(btn) openModal(btn.dataset.act, parseInt(btn.dataset.id, 10));
   });
@@ -947,6 +1144,7 @@ function setupEvents(){
 function init(){
   document.getElementById('todayDate').textContent = 'Reporting date: ' + new Date().toLocaleDateString();
   loadState();
+  importInvoiceItems();
   populateFilters();
   setupEvents();
   resetSiForm(true);
@@ -1149,6 +1347,7 @@ $('ledgerBody').addEventListener('click',e=>{
   const it=state.items.find(i=>i.id===parseInt(b.dataset.id,10)); if(!it) return;
   openForm('Edit Item',[{k:'code',l:'Item Code *',r:1},{k:'name',l:'Item Name *',r:1},{k:'unit',l:'Unit *',r:1},{k:'category',l:'Category'},{k:'store',l:'Store'},{k:'rate',l:'Average Rate',t:'number'}],it,v=>{
     if(state.items.some(x=>x!==it&&x.code.toLowerCase()===v.code.toLowerCase())) return 'Item code already exists.';
+    if(state.items.some(x=>x!==it&&normName(x.name)===normName(v.name))) return 'Item name already exists.';
     Object.assign(it,{code:v.code,name:v.name,unit:v.unit,category:v.category||'Uncategorized',store:v.store||it.store,rate:parseFloat(v.rate)||0});
     saveState(); populateFilters(); renderAll();
   });
