@@ -505,7 +505,7 @@
     <div class="si-field"><label>Remarks</label><input type="text" id="dRem"></div>
     <datalist id="dPartyList"></datalist>
   </div>
-  <div class="si-table-wrap"><table class="si-table" style="min-width:780px"><thead><tr><th>Code</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th><th></th></tr></thead><tbody id="dRows"></tbody></table></div>
+  <div class="si-table-wrap"><table class="si-table" style="min-width:860px"><thead><tr><th>Code</th><th>Description</th><th>Unit</th><th>In Hand</th><th>Qty</th><th>Rate</th><th>Total</th><th></th></tr></thead><tbody id="dRows"></tbody></table></div>
   <button class="btn ghost si-addrow" id="dAddRow" type="button">+ Add Row</button>
   <div class="si-grand">Total: <strong id="dTotal">Rs. 0</strong></div>
   <div class="modal-err" id="dErr"></div>
@@ -844,7 +844,7 @@ function printVoucherWindow(v){
   w.document.write(`<!DOCTYPE html><html><head><title>Voucher ${v.siNo}</title><style>body{font-family:Georgia,serif;padding:20px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th,td{border:1px solid #999;padding:6px;font-size:12px;}th{background:#233C2C;color:#fff;}</style></head><body>
     <h2>Cornerstone School - Store Issue Voucher</h2>
     <p><strong>SI No:</strong> ${v.siNo} | <strong>Date:</strong> ${v.date} | <strong>Store:</strong> ${v.store}</p>
-    <table><thead><tr><th>#</th><th>Code</th><th>Description</th><th>stock in hand</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
+    <table><thead><tr><th>#</th><th>Code</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
     <tbody>${v.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.code}</td><td>${r.name}</td><td>${r.unit}</td><td>${r.issQty}</td><td>${r.issRate}</td><td>${r.issQty*r.issRate}</td></tr>`).join('')}</tbody></table>
   </body></html>`);
   w.document.close();
@@ -1162,7 +1162,7 @@ function openDoc(t,pre){
 const closeDoc=()=>$('dOverlay').classList.remove('open');
 const drawTot=()=>{$('dTotal').textContent=fmtMoney(dr.reduce((a,r)=>a+r.qty*r.rate,0));};
 function drawRows(){
-  $('dRows').innerHTML=dr.map((r,i)=>`<tr data-i="${i}"><td><input class="d-code" list="itemCodeList" value="${esc(r.code)}"></td><td><input class="d-name" list="itemNameList" value="${esc(r.name)}" placeholder="Auto or type"></td><td><input class="d-unit" value="${esc(r.unit)}"></td><td><input class="d-qty" type="number" step="0.01" value="${r.qty||''}"></td><td><input class="d-rate" type="number" step="0.01" value="${r.rate||''}"></td><td><input class="d-tot" readonly value="${fmtNum(r.qty*r.rate)}"></td><td>${dr.length>1?`<button type="button" class="si-remove-btn" data-i="${i}">&times;</button>`:''}</td></tr>`).join('');
+  $('dRows').innerHTML=dr.map((r,i)=>`<tr data-i="${i}"><td><input class="d-code" list="itemCodeList" value="${esc(r.code)}"></td><td><input class="d-name" list="itemNameList" value="${esc(r.name)}" placeholder="Auto or type"></td><td><input class="d-unit" value="${esc(r.unit)}"></td><td><input class="d-av" readonly value="${(item(r.code)||{}).qty!==undefined?fmtNum(item(r.code).qty):''}"></td><td><input class="d-qty" type="number" step="0.01" value="${r.qty||''}"></td><td><input class="d-rate" type="number" step="0.01" value="${r.rate||''}"></td><td><input class="d-tot" readonly value="${fmtNum(r.qty*r.rate)}"></td><td>${dr.length>1?`<button type="button" class="si-remove-btn" data-i="${i}">&times;</button>`:''}</td></tr>`).join('');
   drawTot();
 }
 function fill(r,it){r.code=it.code;r.name=it.name;r.unit=it.unit;r.rate=(dType==='SL'&&it.sale)?it.sale:it.rate;}
