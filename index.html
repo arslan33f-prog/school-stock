@@ -1619,9 +1619,9 @@ $('dAddRow').onclick=()=>{dr.push(blank());drawRows();};
 $('dClose').onclick=closeDoc; $('dCancel').onclick=closeDoc;
 $('dSave').onclick=()=>{
   const err=m=>{$('dErr').textContent=m;$('dErr').style.display='block';};
-  const rows=dr.filter(r=>(r.code||r.name)&&r.qty);
+  const rows=dr.filter(r=>(r.code||r.name)&&(r.qty||dType==='PO'));
   const t=dType, use={}; const poF=()=>dType==='PO'?{dept:$('dDept').value.trim(),purpose:$('dPurpose').value.trim(),reqBy:$('dReqBy').value.trim(),section:$('dSection').value.trim(),leader:$('dLeader').value.trim()}:{};
-  if(!rows.length) return err('Add at least one item with a quantity.');
+  if(!rows.length) return err(t==='PO'?'Add at least one item.':'Add at least one item with a quantity.');
   for(const r of rows){
     if(r.qty<0&&t!=='ADJ') return err('Quantity must be positive.');
     if(t!=='PO'){const it=item(r.code); if(!it) return err('Item code "'+r.code+'" is not in the stock ledger. Add the item first.'); use[it.id]=(use[it.id]||0)+r.qty;}
@@ -1675,7 +1675,7 @@ function printPO(d){
     if(!r) return '<tr class="bl"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
     const h=(r.hand!==undefined&&r.hand!==null)?fmtNum(r.hand):(()=>{const it=item(r.code);return it?fmtNum(it.qty):'';})();
     const c=(r.qty||0)*(r.rate||0); tot+=c;
-    return `<tr><td class="c">${i+1}</td><td class="c">${esc(r.code)}</td><td>${esc(r.name)}</td><td class="c">${esc(r.unit)}</td><td class="c">${r.qty}</td><td class="c">${h}</td><td class="c">${c?fmtNum(c):''}</td><td>${esc(r.rem||'')}</td></tr>`;
+    return `<tr><td class="c">${i+1}</td><td class="c">${esc(r.code)}</td><td>${esc(r.name)}</td><td class="c">${esc(r.unit)}</td><td class="c">${r.qty||''}</td><td class="c">${h}</td><td class="c">${c?fmtNum(c):''}</td><td>${esc(r.rem||'')}</td></tr>`;
   }).join('');
   const F=(l,v)=>`<div class="fl"><span class="lb">${l}</span><span class="vl">${esc(v||'')}</span></div>`;
   const A=l=>`<tr><td><div class="rw"><span class="lb">${l}</span><span class="vl"></span></div></td><td><div class="rw"><span class="lb">Date:</span><span class="vl"></span></div></td></tr>`;
