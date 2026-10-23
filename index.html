@@ -1184,6 +1184,21 @@ function printVoucherWindow(v){
   setTimeout(()=>w.print(), 300);
 }
 
+function deleteSiAt(idx){
+  const d = state.issues[idx]; if(!d) return;
+  if(!confirm(`Delete store issue ${d.siNo} (${d.rows.length} items, ${d.date})?\nThe issued quantities will be returned to stock.`)) return;
+  d.rows.forEach(o=>{
+    const it = state.items.find(i => i.code.toLowerCase() === String(o.code||'').toLowerCase());
+    if(it && o.issQty){ it.qty += o.issQty; state.tx.push({ itemId: it.id, itemName: it.name, type: 'in', qty: o.issQty, reason: `Deleted Store Issue ${d.siNo} (stock returned)`, at: Date.now() }); }
+  });
+  state.issues.splice(idx, 1);
+  if(editSi === d) resetSiForm(true);
+  saveState();
+  renderAll();
+  renderSiList();
+  showToast(`Store Issue ${d.siNo} deleted.`);
+}
+
 function renderSiList(){
   const lq = (document.getElementById('siListSearch').value || '').toLowerCase().split(/\s+/).filter(Boolean);
   const shown = state.issues.filter(d=>{
@@ -1194,7 +1209,7 @@ function renderSiList(){
   document.getElementById('siListBody').innerHTML = state.issues.length === 0 ? '<div style="padding:10px;">No saved issues.</div>' : shown.length === 0 ? '<div style="padding:10px;">No matching vouchers.</div>' : [...shown].reverse().map(d=>`
     <div class="hist-item">
       <div><strong>${d.siNo}</strong> (${d.store})<div class="hist-meta">${d.rows.length} items &middot; ${d.date} &middot; To: ${escapeHtml(d.to||'-')} (${escapeHtml(d.dept||'')})</div></div>
-      <div class="hist-right"><button type="button" class="btn ghost" onclick="editSiByNo('${d.siNo}')" style="padding:2px 8px;font-size:11px;margin-right:6px;">Edit</button><button type="button" class="btn ghost" onclick="printVoucherWindow(${JSON.stringify(d).replace(/"/g, '&quot;')})" style="padding:2px 8px;font-size:11px;">Print</button></div>
+      <div class="hist-right"><button type="button" class="btn ghost" onclick="editSiByNo('${d.siNo}')" style="padding:2px 8px;font-size:11px;margin-right:6px;">Edit</button><button type="button" class="btn ghost" onclick="printVoucherWindow(${JSON.stringify(d).replace(/"/g, '&quot;')})" style="padding:2px 8px;font-size:11px;">Print</button><button type="button" class="btn ghost" onclick="deleteSiAt(${state.issues.indexOf(d)})" style="padding:2px 8px;font-size:11px;margin-left:6px;color:#8a2a1a;border-color:#8a2a1a;">Delete</button></div>
     </div>`).join('');
 }
 
@@ -1626,6 +1641,9 @@ $('dSave').onclick=()=>{
 };
 
 /* ---------- list ---------- */
+function soldList(d){
+  return `<div>${d.rows.length} item${d.rows.length===1?'':'s'}</div><div style="font-size:11px;color:var(--ink-soft);max-height:130px;overflow:auto;margin-top:4px;line-height:1.5">${d.rows.map(r=>esc(r.name)+' &times; '+r.qty+' '+esc(r.unit||'')+' @ '+fmtNum(r.rate)).join('<br>')}</div>`;
+}
 function renderDocs(){
   $('dTypes').innerHTML=Object.keys(T).map(k=>`<div class="pill ${k===cur?'active':''}" data-t="${k}">${T[k].n}</div>`).join('');
   $('dPartyH').textContent=T[cur].p; $('dSale').style.display=cur==='SL'?'':'none';
@@ -1635,7 +1653,7 @@ function renderDocs(){
   const L=S.docs.filter(d=>d.type===cur&&(!st||d.status===st)&&(!q||(d.no+' '+(d.party||'')+' '+d.rows.map(r=>r.name+' '+r.code).join(' ')).toLowerCase().includes(q))).sort((a,b)=>b.at-a.at);
   $('dBody').innerHTML=L.length?L.map(d=>{
     const pend=d.status==='Pending', act=cur==='PO'&&pend?'<button class="in" data-d="grn" data-id="'+d.id+'">Receive</button>':cur==='TI'&&pend?'<button class="in" data-d="recv" data-id="'+d.id+'">Receive</button>':cur==='TO'&&pend?'<button class="in" data-d="done" data-id="'+d.id+'">Complete</button>':'';
-    return `<tr><td><span class="code">${d.no}</span></td><td>${d.date}</td><td>${esc(d.party||'')}</td><td>${d.rows.length}</td><td>${fmtMoney(dTot(d))}</td><td><span class="hist-badge ${pend?'mid':'in'}">${d.status}</span></td><td><div class="rowbtns">${act}<button style="background:var(--gold)" data-d="edit" data-id="${d.id}">Edit</button><button style="background:var(--ink)" data-d="print" data-id="${d.id}">Print</button><button class="out" data-d="del" data-id="${d.id}">Delete</button></div></td></tr>`;
+    return `<tr><td><span class="code">${d.no}</span></td><td>${d.date}</td><td>${esc(d.party||'')}</td><td>${cur==='SL'?soldList(d):d.rows.length}</td><td>${fmtMoney(dTot(d))}</td><td><span class="hist-badge ${pend?'mid':'in'}">${d.status}</span></td><td><div class="rowbtns">${act}<button style="background:var(--gold)" data-d="edit" data-id="${d.id}">Edit</button><button style="background:var(--ink)" data-d="print" data-id="${d.id}">Print</button><button class="out" data-d="del" data-id="${d.id}">Delete</button></div></td></tr>`;
   }).join(''):empty(7,'No records. Click "+ New".');
 }
 function printDoc(d){
@@ -1706,7 +1724,7 @@ function runReport(){
     }
   }else{
     const t=ty==='grn'?'GRN':'SL'; title=ty==='grn'?'GRN':'Store Sale'; h=['No','Date',T[t].p,'Items','Total'];
-    rows=S.docs.filter(d=>d.type===t&&inR(d.date)).map(d=>[d.no,d.date,d.party||'',d.rows.length,fmtMoney(dTot(d))]);
+    rows=S.docs.filter(d=>d.type===t&&inR(d.date)).map(d=>[d.no,d.date,d.party||'',t==='SL'?d.rows.map(r=>r.name+' x '+r.qty+' '+(r.unit||'')).join(', '):d.rows.length,fmtMoney(dTot(d))]);
   }
   lastRep={title,h,rows};
   $('rOut').innerHTML=`<h3 class="sec">${esc(title)}</h3><div class="ledger-wrap"><div class="table-scroll"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}<th style="width:1px"></th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}<td></td></tr>`).join(''):empty(h.length+1,'No data for these filters.')}</tbody></table></div></div>`;
