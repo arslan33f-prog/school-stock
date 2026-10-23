@@ -1593,12 +1593,12 @@ function openDoc(t,pre){
   $('dPartyList').innerHTML=[...new Set(['Canal Garden Campus','Global Campus',...S.docs.map(d=>d.party).filter(Boolean)])].map(x=>`<option value="${esc(x)}">`).join('');
   const po=t==='PO', E=editDoc||{}; $('dPoFields').style.display=po?'':'none'; $('dRemH').style.display=po?'':'none'; $('dRateH').textContent=po?'Est. Rate':'Rate'; $('dTotH').textContent=po?'Est. Cost':'Total'; $('dRemL').textContent=po?'Comments / Remarks':'Remarks';
   $('dDept').value=E.dept||''; $('dPurpose').value=E.purpose||''; $('dReqBy').value=E.reqBy||''; $('dSection').value=E.section||''; $('dLeader').value=E.leader||'';
-  drawRows(); $('dAddRow').style.display=(t==='PO'&&editDoc)?'none':''; $('dOverlay').classList.add('open');
+  drawRows(); $('dAddRow').style.display=''; $('dOverlay').classList.add('open');
 }
 const closeDoc=()=>{$('dOverlay').classList.remove('open');editDoc=null;};
 const drawTot=()=>{$('dTotal').textContent=fmtMoney(dr.reduce((a,r)=>a+r.qty*r.rate,0));};
 function drawRows(){
-  const lk=(dType==='PO'&&editDoc)?' readonly':'';
+  const lk='';
   $('dRows').innerHTML=dr.map((r,i)=>`<tr data-i="${i}"><td><input class="d-code" list="itemCodeList" value="${esc(r.code)}"${lk}></td><td><input class="d-name" list="itemNameList" value="${esc(r.name)}" placeholder="Auto or type"${lk}></td><td><input class="d-unit" value="${esc(r.unit)}"${lk}></td><td>${dType==='PO'?`<input class="d-av" type="number" step="0.01" value="${r.hand!==undefined&&r.hand!==null?r.hand:((item(r.code)||{}).qty!==undefined?item(r.code).qty:'')}">`:`<input class="d-av" readonly value="${(item(r.code)||{}).qty!==undefined?fmtNum(item(r.code).qty):''}">`}</td><td><input class="d-qty" type="number" step="0.01" value="${r.qty||''}"${lk}></td><td><input class="d-rate" type="number" step="0.01" value="${r.rate||''}"${lk}></td><td><input class="d-tot" readonly value="${fmtNum(r.qty*r.rate)}"></td><td style="display:${dType==='PO'?'':'none'}"><input class="d-rem" value="${esc(r.rem||'')}"${lk}></td><td>${dr.length>1&&!lk?`<button type="button" class="si-remove-btn" data-i="${i}">&times;</button>`:''}</td></tr>`).join('');
   drawTot();
 }
