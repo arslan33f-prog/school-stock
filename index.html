@@ -577,7 +577,6 @@
     <datalist id="dPartyList"></datalist>
   </div>
   <div class="si-header" id="dPoFields" style="display:none">
-    <div class="si-field"><label>PR No</label><input type="text" id="dPrNo" placeholder="Auto if blank"></div>
     <div class="si-field"><label>Department</label><input type="text" id="dDept"></div>
     <div class="si-field"><label>Purpose of Purchase</label><input type="text" id="dPurpose"></div>
     <div class="si-field"><label>Required By</label><input type="text" id="dReqBy"></div>
@@ -1593,7 +1592,7 @@ function openDoc(t,pre){
   $('dParty').value=pre?pre.party:''; $('dRem').value=editDoc?editDoc.rem||'':''; $('dPartyL').textContent=T[t].p; $('dQtyH').textContent=t==='PO'?'Demand':'Qty'; $('dErr').style.display='none';
   $('dPartyList').innerHTML=[...new Set(['Canal Garden Campus','Global Campus',...S.docs.map(d=>d.party).filter(Boolean)])].map(x=>`<option value="${esc(x)}">`).join('');
   const po=t==='PO', E=editDoc||{}; $('dPoFields').style.display=po?'':'none'; $('dRemH').style.display=po?'':'none'; $('dRateH').textContent=po?'Est. Rate':'Rate'; $('dTotH').textContent=po?'Est. Cost':'Total'; $('dRemL').textContent=po?'Comments / Remarks':'Remarks';
-  $('dPrNo').value=E.prNo||''; $('dDept').value=E.dept||''; $('dPurpose').value=E.purpose||''; $('dReqBy').value=E.reqBy||''; $('dSection').value=E.section||''; $('dLeader').value=E.leader||'';
+  $('dDept').value=E.dept||''; $('dPurpose').value=E.purpose||''; $('dReqBy').value=E.reqBy||''; $('dSection').value=E.section||''; $('dLeader').value=E.leader||'';
   drawRows(); $('dAddRow').style.display=''; $('dOverlay').classList.add('open');
 }
 const closeDoc=()=>{$('dOverlay').classList.remove('open');editDoc=null;};
@@ -1621,7 +1620,7 @@ $('dClose').onclick=closeDoc; $('dCancel').onclick=closeDoc;
 $('dSave').onclick=()=>{
   const err=m=>{$('dErr').textContent=m;$('dErr').style.display='block';};
   const rows=dr.filter(r=>(r.code||r.name)&&(r.qty||dType==='PO'));
-  const t=dType, use={}; const poF=()=>dType==='PO'?{prNo:$('dPrNo').value.trim(),dept:$('dDept').value.trim(),purpose:$('dPurpose').value.trim(),reqBy:$('dReqBy').value.trim(),section:$('dSection').value.trim(),leader:$('dLeader').value.trim()}:{};
+  const t=dType, use={}; const poF=()=>dType==='PO'?{dept:$('dDept').value.trim(),purpose:$('dPurpose').value.trim(),reqBy:$('dReqBy').value.trim(),section:$('dSection').value.trim(),leader:$('dLeader').value.trim()}:{};
   if(!rows.length) return err(t==='PO'?'Add at least one item.':'Add at least one item with a quantity.');
   for(const r of rows){
     if(r.qty<0&&t!=='ADJ') return err('Quantity must be positive.');
@@ -1709,7 +1708,7 @@ function printPO(d){
   <div class="ttl"><h1>CORNERSTONE SCHOOL &amp; COLLEGE</h1><h3>Purchase Requisition Form</h3></div>
   <div class="bar"></div>
   <div class="fields">
-    <div class="col">${F('PR No:',d.prNo||d.no)}${F('Date:',d.date)}${F('Department:',d.dept)}${F('Purpose of Purchase:',d.purpose)}</div>
+    <div class="col">${F('PR No:','')}${F('Date:',d.date)}${F('Department:',d.dept)}${F('Purpose of Purchase:',d.purpose)}</div>
     <div class="col">${F('Required By:',d.reqBy)}${F('School Section:',d.section)}${F('Phase Leader/Coordinator Name:',d.leader)}</div>
   </div>
   <table class="m"><colgroup><col style="width:5%"><col style="width:9%"><col style="width:27%"><col style="width:7%"><col style="width:9%"><col style="width:10%"><col style="width:11%"><col style="width:22%"></colgroup>
